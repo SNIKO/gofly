@@ -1,0 +1,16 @@
+{
+  "trips": [
+    {
+      "fromAirport": [
+        "SYD"
+      ],
+      "toAirport": [
+        "IEV"
+      ],
+      "minDate": "19.12.2016",
+      "maxDate": "23.12.2016",
+      "minDuration": 26,
+      "maxDuration": 29
+    }
+  ]
+}
