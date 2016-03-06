@@ -47,7 +47,7 @@ func (rates *Rates) Find(from string, to string) *Rate {
 	return rates.Filter(func (r Rate) bool { return r.From(from) && r.To(to) } ).HeadOrNil()
 }
 
-func (rates *Rates) Filter(predicate func (Rate) bool) *Rates {
+func (rates *Rates) Filter(predicate func (Rate) bool) Rates {
 	result := Rates {}
 
 	if (rates != nil && predicate != nil) {
@@ -58,12 +58,12 @@ func (rates *Rates) Filter(predicate func (Rate) bool) *Rates {
 		}
 	}
 
-	return &result
+	return result
 }
 
-func (rates *Rates) HeadOrNil() *Rate {
-	if len(*rates) > 0 {
-		return &(*rates)[0]
+func (rates Rates) HeadOrNil() *Rate {
+	if len(rates) > 0 {
+		return &(rates)[0]
 	} else {
 		return nil
 	}

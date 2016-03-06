@@ -5,8 +5,8 @@ import (
 	"strings"
 	"bytes"
 	"fmt"
-/*	"github.com/sniko/gofly/references/airlines"
-	"github.com/sniko/gofly/references/airports"*/
+	"github.com/sniko/gofly/references/airlines"
+	"github.com/sniko/gofly/references/airports"
 )
 
 type FlightDirection struct {
@@ -18,8 +18,12 @@ type FlightDirection struct {
 type Fare struct {
 	Itineraries []Itinerary
 	Date        time.Time
-	Prices      []PriceInfo
+	Prices      Prices
 }
+
+type Fares []Fare
+
+type Prices []PriceInfo
 
 type Itinerary struct {
 	Flights []Flight
@@ -63,7 +67,7 @@ func (fare Fare) PrettyString() string {
 		result.WriteString(fmt.Sprintf("\tFlight %d\n", i))
 
 		for j, flight := range itinerary.Flights {
-			/*var airlineName string
+			var airlineName string
 			var cityName string
 
 			airline, err := airlines.GetByIATACode(flight.Airline)
@@ -78,16 +82,16 @@ func (fare Fare) PrettyString() string {
 				cityName = flight.ToAirport
 			} else {
 				cityName = airport.City
-			}*/
+			}
 
 			if j < len(itinerary.Flights) - 1 {
 				thisFlight := itinerary.Flights[j]
 				nextFlight := itinerary.Flights[j+1]
 				stopOver := nextFlight.DepartureTime.Sub(thisFlight.ArrivalTime)
 
-				result.WriteString(fmt.Sprintf("\t\t%s %4s %s %s, stopover %s\n", flight.Airline, flight.FlightNumber, flight.ToAirport, flight.DepartureTime, stopOver))
+				result.WriteString(fmt.Sprintf("\t\t%s %4s %15s %s, %s, stopover %s\n", flight.Airline, flight.FlightNumber, cityName, flight.DepartureTime, airlineName, stopOver))
 			} else {
-				result.WriteString(fmt.Sprintf("\t\t%s %4s %s %s\n", flight.Airline, flight.FlightNumber, flight.ToAirport, flight.DepartureTime))
+				result.WriteString(fmt.Sprintf("\t\t%s %4s %15s %s %s\n", flight.Airline, flight.FlightNumber, cityName, flight.DepartureTime, airlineName))
 			}
 		}
 	}
@@ -104,7 +108,7 @@ func (d FlightDirection) String() string {
 }
 
 type Agent interface {
-	Search(directions []FlightDirection) ([]Fare, error)
+	Search(directions []FlightDirection) (Fares, error)
 }
 
 type FaresByPrice []Fare
@@ -123,6 +127,30 @@ func (a FaresByPrice) Less(i, j int) bool {
 			if (a[i].Prices[ii].Currency == a[j].Prices[jj].Currency) {
 				return a[i].Prices[ii].Price < a[j].Prices[jj].Price
 			}
+		}
+	}
+
+	return false
+}
+
+func (fares *Fares) Filter(predicate func (Fare) bool) Fares {
+	result := Fares {}
+
+	if (fares != nil && predicate != nil) {
+		for _, r := range *fares {
+			if (predicate(r)) {
+				result = append(result, r)
+			}
+		}
+	}
+
+	return result
+}
+
+func (prices *Prices) IsLessThan(price PriceInfo) bool {
+	for _, p := range *prices {
+		if (p.Currency == price.Currency) {
+			return p.Price < price.Price
 		}
 	}
 

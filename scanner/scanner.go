@@ -8,6 +8,9 @@ import (
 	"io/ioutil"
 	"encoding/json"
 	"strings"
+	"bufio"
+	"os"
+	"time"
 )
 
 type TripInfo struct {
@@ -23,6 +26,15 @@ func (t TripInfo) String() string {
 	return strings.Join(directions, ", ")
 }
 
+func (t TripInfo) ShortString() string {
+	airports := []string{}
+	for _, d := range t.Route {
+		airports = append(airports, d.From)
+	}
+
+	return fmt.Sprintf("%s %s", t.Route[0].Date.Format("02 Jan"), strings.Join(airports, "-"))
+}
+
 func main() {
 	trips, err := loadConfig()
 	if (err != nil) {
@@ -30,12 +42,12 @@ func main() {
 		return
 	}
 
-	fares := []agents.Fare {}
+	fares := agents.Fares{}
 	
 	var agent agents.Agent
 	agent = agents.Momondo{}
 
-	for _, trip := range *trips {
+	for _, trip := range trips {
 		fmt.Printf("Loading fares for '%s ...'\n", trip.String())
 
 		f, err := agent.Search(trip.Route)
@@ -79,13 +91,25 @@ func main() {
 
 	sort.Sort(agents.FaresByPrice(fares))
 
-	for i, _ := range fares[0:100] {
-		fmt.Println(fares[i].PrettyString())
-		fmt.Println()
+	fmt.Printf("%d fares have been loaded", len(fares))
+
+	fileName := fmt.Sprintf("%s (on %s).txt", trips[0].ShortString(), time.Now().Format("02 Jan 2006"));
+	f, err := os.Create(fmt.Sprintf("fares/%s", fileName))
+	if (err != nil) {
+		fmt.Printf("An error occurred when creating an output file: %s", err)
 	}
+
+	writer := bufio.NewWriter(f)
+
+	for i, _ := range fares {
+		writer.WriteString(fares[i].PrettyString())
+		writer.WriteString("\n")
+	}
+
+	writer.Flush()
 }
 
-func loadConfig() (*[]TripInfo, error) {
+func loadConfig() ([]TripInfo, error) {
 	configFile, err := ioutil.ReadFile("config.json")
 	if (err != nil) {
 		return nil, err
@@ -121,5 +145,5 @@ func loadConfig() (*[]TripInfo, error) {
 		}
 	}
 
-	return &trips, err
+	return trips, err
 }

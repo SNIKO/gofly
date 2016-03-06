@@ -50,7 +50,7 @@ func (references *ReferenceFiles) Update(searchResult *momondo.SearchResult) {
 	}
 }
 
-func (client Momondo) Search(directions []FlightDirection) ([]Fare, error) {
+func (client Momondo) Search(directions []FlightDirection) (Fares, error) {
 	searchId, engineId, err := startSearch(directions)
 	if err != nil {
 		return nil, err
