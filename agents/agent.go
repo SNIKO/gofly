@@ -89,7 +89,7 @@ func (fare Fare) PrettyString() string {
 				nextFlight := itinerary.Flights[j+1]
 				stopOver := nextFlight.DepartureTime.Sub(thisFlight.ArrivalTime)
 
-				result.WriteString(fmt.Sprintf("\t\t%s %4s %15s %s, %s, stopover %s\n", flight.Airline, flight.FlightNumber, cityName, flight.DepartureTime, airlineName, stopOver))
+				result.WriteString(fmt.Sprintf("\t\t%s %4s %15s %s %s, stopover %s\n", flight.Airline, flight.FlightNumber, cityName, flight.DepartureTime, airlineName, stopOver))
 			} else {
 				result.WriteString(fmt.Sprintf("\t\t%s %4s %15s %s %s\n", flight.Airline, flight.FlightNumber, cityName, flight.DepartureTime, airlineName))
 			}
@@ -105,6 +105,16 @@ func (price PriceInfo) String() string {
 
 func (d FlightDirection) String() string {
 	return fmt.Sprintf("%s -> %s %s", d.From, d.To, d.Date.Format("02 Jan"))
+}
+
+func (prices Prices) String() string {
+	p := []string{}
+
+	for _, price := range prices {
+		p = append(p, price.String())
+	}
+
+	return strings.Join(p, ", ")
 }
 
 type Agent interface {

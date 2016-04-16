@@ -5,6 +5,7 @@ import (
 	"github.com/sniko/gofly/api/momondo"
 	"github.com/sniko/gofly/references/airports"
 	"strconv"
+	"reflect"
 )
 
 type Momondo struct {
@@ -153,7 +154,21 @@ func parseFares(searchResult *momondo.SearchResult, references *ReferenceFiles) 
 			}
 
 			price := PriceInfo{offer.TotalPrice, offer.Currency, supplier.DisplayName}
-			fares = append(fares, Fare{itineraries, time.Now(), []PriceInfo{price}})
+
+			var existingFare *Fare
+
+			for i, _ := range fares {
+				if (reflect.DeepEqual(fares[i].Itineraries, itineraries)) {
+					existingFare = &fares[i]
+					break
+				}
+			}
+
+			if (existingFare != nil) {
+				existingFare.Prices = append(existingFare.Prices, price)
+			} else {
+				fares = append(fares, Fare{itineraries, time.Now(), []PriceInfo{price}})
+			}
 		}
 	}
 
