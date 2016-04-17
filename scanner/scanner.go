@@ -48,7 +48,7 @@ func main() {
 	agent = agents.Momondo{}
 
 	for _, trip := range trips {
-		fmt.Printf("Loading fares for '%s ...'\n", trip.String())
+		fmt.Printf("Searching flights for route '%s'... ", trip.String())
 
 		f, err := agent.Search(trip.Route)
 		if (err != nil) {
@@ -56,7 +56,7 @@ func main() {
 			continue
 		}
 
-		fmt.Printf("%d fares have been loaded for '%s'\n", len(f), trip.String())
+		fmt.Printf("completed, %d options found\n", len(f))
 
 		fares = append(fares, f...)
 	}
@@ -91,7 +91,7 @@ func main() {
 
 	sort.Sort(agents.FaresByPrice(fares))
 
-	fmt.Printf("%d fares have been loaded", len(fares))
+	fmt.Printf("%d fares have been loaded\n", len(fares))
 
 	fileName := fmt.Sprintf("%s (on %s).txt", trips[0].ShortString(), time.Now().Format("02 Jan 2006"));
 	f, err := os.Create(fmt.Sprintf("fares/%s", fileName))
