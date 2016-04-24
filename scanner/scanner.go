@@ -36,14 +36,16 @@ func (t TripInfo) ShortString() string {
 }
 
 func main() {
-	trips, err := loadConfig()
+	config, err := loadConfig()
 	if (err != nil) {
-		fmt.Println(err)
+		fmt.Printf("Failed to load config: %s", err)
 		return
 	}
 
+	trips := getTripCombinations(config.Trips)
+
 	fares := agents.Fares{}
-	
+
 	var agent agents.Agent
 	agent = agents.Momondo{}
 
@@ -107,9 +109,11 @@ func main() {
 	}
 
 	writer.Flush()
+
+	ReportElasticSearch(config.ElasticSearch.Host, config.ElasticSearch.Port, config.ElasticSearch.Index, fares)
 }
 
-func loadConfig() ([]TripInfo, error) {
+func loadConfig() (*Config, error) {
 	configFile, err := ioutil.ReadFile("config.json")
 	if (err != nil) {
 		return nil, err
@@ -121,9 +125,13 @@ func loadConfig() ([]TripInfo, error) {
 		return nil, err
 	}
 
+	return &config, err
+}
+
+func getTripCombinations(tripsConfigs []Trip) []TripInfo {
 	trips := []TripInfo{}
 
-	for _, tripConfig := range config.Trips {
+	for _, tripConfig := range tripsConfigs {
 		for _, origin := range tripConfig.FromAirport {
 			for _, destination := range tripConfig.ToAirport {
 				date := tripConfig.MinDate.time
@@ -145,5 +153,5 @@ func loadConfig() ([]TripInfo, error) {
 		}
 	}
 
-	return trips, err
+	return trips
 }

@@ -12,5 +12,10 @@
       "minDuration": 26,
       "maxDuration": 30
     }
-  ]
+  ],
+  "elasticSearch": {
+    "host": "localhost",
+    "port": 9200,
+    "index": "golfy"
+  }
 }

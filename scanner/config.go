@@ -5,6 +5,13 @@ import (
 
 type Config struct {
 	Trips []Trip
+	ElasticSearch *ElasticSearchConfig
+}
+
+type ElasticSearchConfig struct {
+	Host  string
+	Port  int
+	Index string
 }
 
 type Trip struct {
