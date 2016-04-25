@@ -26,7 +26,7 @@ const (
         "fare_info": {
           "type": "string"
         },
-        "from_city": {
+        "origin_city": {
           "type": "string",
           "index": "not_analyzed"
         },
@@ -53,9 +53,15 @@ const (
           "type": "string",
           "index": "not_analyzed"
         },
-        "to_city": {
+        "destination_city": {
           "type": "string",
           "index": "not_analyzed"
+        },
+     	"origin_coordinates": {
+          "type": "geo_point"
+        },
+        "destination_coordinates": {
+          "type": "geo_point"
         }
       }
     },
@@ -80,7 +86,7 @@ const (
           "type": "string",
           "index": "not_analyzed"
         },
-        "from_city": {
+        "origin_city": {
           "type": "string",
           "index": "not_analyzed"
         },
@@ -102,9 +108,15 @@ const (
         "stopover_at_destination_in_hours": {
           "type": "long"
         },
-        "to_city": {
+        "destination_city": {
           "type": "string",
           "index": "not_analyzed"
+        },
+        "origin_coordinates": {
+          "type": "geo_point"
+        },
+        "destination_coordinates": {
+          "type": "geo_point"
         }
       }
     }
@@ -113,30 +125,34 @@ const (
 )
 
 type ElasticFare struct {
-	SearchDate          time.Time   `json:"search_date"`
-	Date                time.Time   `json:"date"`
-	ReturnDate          time.Time   `json:"return_date"`
-	SearchDateOfTheWeek string      `json:"search_day_of_the_week"`
-	DayOfTheWeek        string      `json:"day_of_the_week"`
-	ReturnDayOfTheWeek  string      `json:"return_day_of_the_week"`
-	FromCity            string      `json:"from_city"`
-	ToCity              string      `json:"to_city"`
-	Provider            string      `json:"provider"`
-	FareInfo            string	`json:"fare_info"`
-	PriceInUSD          int        	`json:"price_usd"`
+	SearchDate             time.Time   `json:"search_date"`
+	Date                   time.Time   `json:"date"`
+	ReturnDate             time.Time   `json:"return_date"`
+	SearchDateOfTheWeek    string      `json:"search_day_of_the_week"`
+	DayOfTheWeek           string      `json:"day_of_the_week"`
+	ReturnDayOfTheWeek     string      `json:"return_day_of_the_week"`
+	OriginCity             string      `json:"origin_city"`
+	OriginCoordinates      string      `json:"origin_coordinates"`
+	DestinationCity        string      `json:"destination_city"`
+	DestinationCoordinates string      `json:"destination_coordinates"`
+	Provider               string      `json:"provider"`
+	FareInfo               string      `json:"fare_info"`
+	PriceInUSD             int         `json:"price_usd"`
 }
 
 type ElasticFlight struct {
 	SearchDate                   time.Time  `json:"search_date"`
 	DepartureDate                time.Time  `json:"departure_date"`
 	SearchDateOfTheWeek          string     `json:"search_day_of_the_week"`
-	FromCity                     string     `json:"from_city"`
-	ToCity                       string     `json:"to_city"`
+	OriginCity                   string     `json:"origin_city"`
+	OriginCoordinates            string 	`json:"origin_coordinates"`
+	DestinationCity              string     `json:"destination_city"`
+	DestinationCoordinates       string 	`json:"destination_coordinates"`
 	Airline                      string     `json:"airline"`
 	FlightNumber                 string     `json:"flight_number"`
 	Plane                        string     `json:"plane"`
 	FareInfo                     string     `json:"fare_info"`
-	Key			     string	`json:"flight_key"`
+	Key                          string     `json:"flight_key"`
 	StopOverAtDestinationInHours int        `json:"stopover_at_destination_in_hours"`
 	PriceInUSD                   int        `json:"price_usd"`
 }
@@ -229,8 +245,6 @@ func CreateElasticFlight(fare *agents.Fare, priceInfo *agents.PriceInfo, flight 
 		SearchDate:             fare.Date,
 		DepartureDate:          flight.DepartureTime,
 		SearchDateOfTheWeek:    fare.Date.Weekday().String(),
-		FromCity:               GetCityName(flight.FromAirport),
-		ToCity:                 GetCityName(flight.ToAirport),
 		Airline:                GetAirlineName(flight.Airline),
 		FlightNumber:           flight.Airline + flight.FlightNumber,
 		Plane:                  flight.Plane,
@@ -242,6 +256,14 @@ func CreateElasticFlight(fare *agents.Fare, priceInfo *agents.PriceInfo, flight 
 		stopOver := int(nextFlight.DepartureTime.Sub(flight.ArrivalTime).Hours())
 		elasticFlight.StopOverAtDestinationInHours = stopOver
 	}
+
+	city, coordinates := GetAirportInfo(flight.FromAirport)
+	elasticFlight.OriginCity = city
+	elasticFlight.OriginCoordinates = coordinates
+
+	city, coordinates = GetAirportInfo(flight.ToAirport)
+	elasticFlight.DestinationCity = city
+	elasticFlight.DestinationCoordinates = coordinates
 
 	return &elasticFlight
 }
@@ -262,26 +284,37 @@ func CreateElasticFare(fare *agents.Fare, priceInfo *agents.PriceInfo) *ElasticF
 		FareInfo: 		fare.PrettyString(),
 		Date:			trip.Flights[0].DepartureTime,
 		DayOfTheWeek:		trip.Flights[0].DepartureTime.Weekday().String(),
-		FromCity:		GetCityName(trip.Flights[0].FromAirport),
 	}
+
+	city, coordinates := GetAirportInfo(trip.Flights[0].FromAirport)
+	elasticFare.OriginCity = city
+	elasticFare.OriginCoordinates = coordinates
+
+	var destinationAirport string
+	if (returnTrip != nil) {
+		destinationAirport = returnTrip.Flights[0].FromAirport
+	} else {
+		destinationAirport = trip.Flights[len(trip.Flights) - 1].ToAirport
+	}
+
+	city, coordinates = GetAirportInfo(destinationAirport)
+	elasticFare.DestinationCity = city
+	elasticFare.DestinationCoordinates = coordinates
 
 	if (returnTrip != nil) {
 		elasticFare.ReturnDate = returnTrip.Flights[0].DepartureTime
 		elasticFare.ReturnDayOfTheWeek = elasticFare.ReturnDate.Weekday().String()
-		elasticFare.ToCity = GetCityName(returnTrip.Flights[0].FromAirport)
-	} else {
-		elasticFare.ToCity = GetCityName(trip.Flights[len(trip.Flights) - 1].ToAirport)
 	}
 
 	return &elasticFare
 }
 
-func GetCityName(airportIataCode string) string {
+func GetAirportInfo(airportIataCode string) (cityName string, coordinates string) {
 	airport, err := airports.GetByIATACode(airportIataCode)
 	if (err != nil) {
-		return airportIataCode
+		return "", airportIataCode
 	} else {
-		return airport.City
+		return airport.City, fmt.Sprintf("%s,%s", airport.Latitude, airport.Longitude)
 	}
 }
 

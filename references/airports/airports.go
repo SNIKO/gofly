@@ -8,12 +8,14 @@ import (
 )
 
 type Airport struct {
-	Name     string
-	City     string
-	Country  string
-	IATACode string
-	ICAOCode string
-	Timezone string
+	Name      string
+	City      string
+	Country   string
+	IATACode  string
+	ICAOCode  string
+	Latitude  string
+	Longitude string
+	Timezone  string
 }
 
 var airports map[string]Airport
@@ -55,6 +57,8 @@ func LoadAirports() (map[string]Airport, error) {
 			Country: record[3],
 			IATACode: record[4],
 			ICAOCode: record[5],
+			Latitude: record[6],
+			Longitude: record[7],
 			Timezone: record[11],
 		}
 
