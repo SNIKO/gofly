@@ -10,6 +10,8 @@ import (
 )
 
 const (
+	BatchSize = 1000
+
 	IndexConfig = `
 {
   "mappings": {
@@ -105,7 +107,7 @@ const (
           "type": "string",
           "index": "not_analyzed"
         },
-        "stopover_at_destination_in_hours": {
+        "stopover": {
           "type": "long"
         },
         "destination_city": {
@@ -141,20 +143,20 @@ type ElasticFare struct {
 }
 
 type ElasticFlight struct {
-	SearchDate                   time.Time  `json:"search_date"`
-	DepartureDate                time.Time  `json:"departure_date"`
-	SearchDateOfTheWeek          string     `json:"search_day_of_the_week"`
-	OriginCity                   string     `json:"origin_city"`
-	OriginCoordinates            string 	`json:"origin_coordinates"`
-	DestinationCity              string     `json:"destination_city"`
-	DestinationCoordinates       string 	`json:"destination_coordinates"`
-	Airline                      string     `json:"airline"`
-	FlightNumber                 string     `json:"flight_number"`
-	Plane                        string     `json:"plane"`
-	FareInfo                     string     `json:"fare_info"`
-	Key                          string     `json:"flight_key"`
-	StopOverAtDestinationInHours int        `json:"stopover_at_destination_in_hours"`
-	PriceInUSD                   int        `json:"price_usd"`
+	SearchDate             time.Time  `json:"search_date"`
+	DepartureDate          time.Time  `json:"departure_date"`
+	SearchDateOfTheWeek    string     `json:"search_day_of_the_week"`
+	OriginCity             string     `json:"origin_city"`
+	OriginCoordinates      string     `json:"origin_coordinates"`
+	DestinationCity        string     `json:"destination_city"`
+	DestinationCoordinates string     `json:"destination_coordinates"`
+	Airline                string     `json:"airline"`
+	FlightNumber           string     `json:"flight_number"`
+	Plane                  string     `json:"plane"`
+	FareInfo               string     `json:"fare_info"`
+	Key                    string     `json:"flight_key"`
+	StopOver               int        `json:"stopover"`
+	PriceInUSD             int        `json:"price_usd"`
 }
 
 func ReportElasticSearch(host string, port int, index string, fares []agents.Fare) {
@@ -181,35 +183,39 @@ func ReportElasticSearch(host string, port int, index string, fares []agents.Far
 	}
 
 	elasticFares, elasticFlights := GetElasticDocs(fares)
-	indexedFares, indexedFlights := 0, 0
 
-	for _, fare := range elasticFares {
-		_, err := es.Index(index, "fare", fare)
-		if (err != nil) {
-			fmt.Printf("An error occurred when indexing fare %s: %s\n", fare, err)
-		} else {
-			indexedFares++
-		}
-	}
+	fmt.Printf("elastic: Indexing %d fares and %d flights...\n", len(elasticFares), len(elasticFlights))
 
-	fmt.Printf("elastic: %d out of %d fares have been successfully indexed\n", indexedFares, len(elasticFares))
+	start := time.Now()
+	BulkIndex(es, index, "fare", elasticFares)
+	BulkIndex(es, index, "flight", elasticFlights)
+	elapsed := time.Since(start)
 
-	for _, flight := range elasticFlights {
-		_, err := es.Index(index, "flight", flight)
-		if (err != nil) {
-			fmt.Printf("An error occurred when indexing flight %s: %s\n", flight, err)
-		} else {
-			indexedFlights++
-		}
-	}
-
-	fmt.Printf("elastic: %d out of %d flights have been successfully indexed\n", indexedFlights, len(elasticFlights))
+	fmt.Printf("elastic: Indexing completed. Elapsed time: %s\n", elapsed)
 }
 
-func GetElasticDocs(fares []agents.Fare) ([]ElasticFare, []ElasticFlight) {
-	elasticFares := []ElasticFare{}
-	elasticFlights := []ElasticFlight{}
+func BulkIndex(client *elasticsearch.Client, index string, documentType string, documents []interface{}) {
+	batch := []elasticsearch.BulkCommand {}
 
+	for _, doc := range documents {
+		batch = append(batch, elasticsearch.IndexCommand{Index: index, DocumentType: documentType, Content: doc})
+
+		if (len(batch) >= BatchSize) {
+			res, err := client.Bulk(batch)
+			if (err != nil) {
+				fmt.Printf("%s elastic: an error occurred when indexing a %s batch of size %d: %s\n", time.Now().String(), documentType, len(batch), err)
+			} else {
+				if (res.Errors) {
+					fmt.Printf("%s elastic: an error occurred when indexing a %s batch of size %d\n", time.Now().String(), documentType, len(batch))
+				}
+			}
+
+			batch = []elasticsearch.BulkCommand{}
+		}
+	}
+}
+
+func GetElasticDocs(fares []agents.Fare) (elasticFares []interface{}, elasticFlights []interface{}) {
 	for _, fare := range fares {
 		for _, priceInfo := range fare.Prices {
 			if (priceInfo.Currency != "USD") {
@@ -254,7 +260,7 @@ func CreateElasticFlight(fare *agents.Fare, priceInfo *agents.PriceInfo, flight 
 
 	if (nextFlight != nil) {
 		stopOver := int(nextFlight.DepartureTime.Sub(flight.ArrivalTime).Hours())
-		elasticFlight.StopOverAtDestinationInHours = stopOver
+		elasticFlight.StopOver = stopOver
 	}
 
 	city, coordinates := GetAirportInfo(flight.FromAirport)
