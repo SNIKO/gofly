@@ -4456,7 +4456,6 @@ const csvdb = `
 4461,Speedwings,\N,,SPW,SPEEDWING,Switzerland,N
 4462,Service People Gesselschaft fur Charter und Service,\N,,SPX,,Germany,N
 4463,Slovak National Aeroclub,\N,,SQA,SLOVAK AEROCLUB,Slovakia,N
-4464,Singapore Airlines Cargo,\N,SQ,SQC,SINGCARGO,Singapore,Y
 4465,Slovak Air Force,\N,,SQF,SLOVAK AIRFORCE,Slovakia,N
 4466,Servicos De Alquiler,\N,,SQL,ALQUILER,Mexico,N
 4467,Sair Aviation,\N,,SRA,SAIR,Canada,N
