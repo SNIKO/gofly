@@ -7,6 +7,7 @@ import (
 	"github.com/sniko/gofly/references/airports"
 	"github.com/sniko/gofly/api/elasticsearch"
 	"fmt"
+	"strconv"
 )
 
 const (
@@ -46,14 +47,16 @@ const (
           "index": "not_analyzed"
         },
         "trip_origin_coordinates": {
-          "type": "geo_point"
+          "type": "geo_point",
+          "lat_lon": true
         },
         "trip_destination_city": {
           "type": "string",
           "index": "not_analyzed"
         },
         "trip_destination_coordinates": {
-          "type": "geo_point"
+          "type": "geo_point",
+          "lat_lon": true
         },
         "trip_provider": {
           "type": "string",
@@ -90,14 +93,16 @@ const (
           "index": "not_analyzed"
         },
         "trip_origin_coordinates": {
-          "type": "geo_point"
+          "type": "geo_point",
+          "lat_lon": true
         },
         "trip_destination_city": {
           "type": "string",
           "index": "not_analyzed"
         },
         "trip_destination_coordinates": {
-          "type": "geo_point"
+          "type": "geo_point",
+          "lat_lon": true
         },
         "trip_main_airline": {
           "type": "string",
@@ -126,14 +131,16 @@ const (
           "index": "not_analyzed"
         },
         "flight_origin_coordinates": {
-          "type": "geo_point"
+          "type": "geo_point",
+          "lat_lon": true
         },
         "flight_destination_city": {
           "type": "string",
           "index": "not_analyzed"
         },
         "flight_destination_coordinates": {
-          "type": "geo_point"
+          "type": "geo_point",
+          "lat_lon": true
         },
         "flight_airline": {
           "type": "string",
@@ -160,6 +167,11 @@ const (
 }`
 )
 
+type Location struct {
+	Latitude  float64 `json:"lat"`
+	Longitude float64 `json:"lon"`
+}
+
 type ElasticTrip struct {
 	SearchDate             time.Time   `json:"search_date"`
 	SearchDateOfTheWeek    string      `json:"search_day_of_the_week"`
@@ -168,11 +180,11 @@ type ElasticTrip struct {
 	ReturnDate             time.Time   `json:"trip_return_date"`
 	ReturnDayOfTheWeek     string      `json:"trip_return_day_of_the_week"`
 	OriginCity             string      `json:"trip_origin_city"`
-	OriginCoordinates      string      `json:"trip_origin_coordinates"`
+	OriginCoordinates      *Location   `json:"trip_origin_coordinates"`
 	DestinationCity        string      `json:"trip_destination_city"`
-	DestinationCoordinates string      `json:"trip_destination_coordinates"`
+	DestinationCoordinates *Location   `json:"trip_destination_coordinates"`
 	Provider               string      `json:"trip_provider"`
-	MainAirline            string 	   `json:"trip_main_airline"`
+	MainAirline            string      `json:"trip_main_airline"`
 	Summary                string      `json:"trip_summary"`
 	PriceInUSD             int         `json:"trip_price_usd"`
 }
@@ -182,9 +194,9 @@ type ElasticFlight struct {
 	SearchDateOfTheWeek        string     `json:"search_day_of_the_week"`
 	TripDepartureDate          time.Time  `json:"trip_departure_date"`
 	TripOriginCity             string     `json:"trip_origin_city"`
-	TripOriginCoordinates      string     `json:"trip_origin_coordinates"`
+	TripOriginCoordinates      *Location  `json:"trip_origin_coordinates"`
 	TripDestinationCity        string     `json:"trip_destination_city"`
-	TripDestinationCoordinates string     `json:"trip_destination_coordinates"`
+	TripDestinationCoordinates *Location  `json:"trip_destination_coordinates"`
 	TripMainAirline            string     `json:"trip_main_airline"`
 	TripSummary                string     `json:"trip_summary"`
 	TripPriceInUSD             int        `json:"trip_price_usd"`
@@ -192,9 +204,9 @@ type ElasticFlight struct {
 	DestinationArrivalTime     time.Time  `json:"flight_destination_arrival_time"`
 	DestinationDepartureTime   time.Time  `json:"flight_destination_departure_time"`
 	OriginCity                 string     `json:"flight_origin_city"`
-	OriginCoordinates          string     `json:"flight_origin_coordinates"`
+	OriginCoordinates          *Location  `json:"flight_origin_coordinates"`
 	DestinationCity            string     `json:"flight_destination_city"`
-	DestinationCoordinates     string     `json:"flight_destination_coordinates"`
+	DestinationCoordinates     *Location  `json:"flight_destination_coordinates"`
 	Airline                    string     `json:"flight_airline"`
 	FlightNumber               string     `json:"flight_number"`
 	Plane                      string     `json:"flight_plane"`
@@ -388,12 +400,22 @@ func CreateElasticFare(fare *agents.Fare, priceInfo *agents.PriceInfo) *ElasticT
 	return &elasticFare
 }
 
-func GetAirportInfo(airportIataCode string) (cityName string, coordinates string) {
+func GetAirportInfo(airportIataCode string) (cityName string, coordinates *Location) {
 	airport, err := airports.GetByIATACode(airportIataCode)
 	if (err != nil) {
-		return "", airportIataCode
+		return airportIataCode, nil
 	} else {
-		return airport.City, fmt.Sprintf("%s,%s", airport.Latitude, airport.Longitude)
+		lat, err := strconv.ParseFloat(airport.Latitude, 64)
+		if (err != nil) {
+			return airportIataCode, nil
+		}
+
+		lon, err := strconv.ParseFloat(airport.Longitude, 64)
+		if (err != nil) {
+			return airportIataCode, nil
+		}
+
+		return airport.City, &Location{lat, lon}
 	}
 }
 
