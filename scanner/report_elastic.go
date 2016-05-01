@@ -17,29 +17,19 @@ const (
   "mappings": {
     "trip": {
       "properties": {
+      	"search_date": {
+          "format": "strict_date_optional_time||epoch_millis",
+          "type": "date"
+        },
+        "search_day_of_the_week": {
+          "type": "string",
+          "index": "not_analyzed"
+        },
         "trip_date": {
           "format": "strict_date_optional_time||epoch_millis",
           "type": "date"
         },
         "trip_day_of_the_week": {
-          "type": "string",
-          "index": "not_analyzed"
-        },
-        "fare_info": {
-          "type": "string"
-        },
-        "trip_origin_city": {
-          "type": "string",
-          "index": "not_analyzed"
-        },
-        "price_usd": {
-          "type": "long"
-        },
-        "provider": {
-          "type": "string",
-          "index": "not_analyzed"
-        },
-        "trip_main_airline": {
           "type": "string",
           "index": "not_analyzed"
         },
@@ -51,78 +41,45 @@ const (
           "type": "string",
           "index": "not_analyzed"
         },
-        "search_date": {
-          "format": "strict_date_optional_time||epoch_millis",
-          "type": "date"
-        },
-        "search_day_of_the_week": {
+        "trip_origin_city": {
           "type": "string",
           "index": "not_analyzed"
+        },
+        "trip_origin_coordinates": {
+          "type": "geo_point"
         },
         "trip_destination_city": {
           "type": "string",
           "index": "not_analyzed"
         },
-     	"trip_origin_coordinates": {
-          "type": "geo_point"
-        },
         "trip_destination_coordinates": {
           "type": "geo_point"
+        },
+        "trip_provider": {
+          "type": "string",
+          "index": "not_analyzed"
+        },
+        "trip_main_airline": {
+          "type": "string",
+          "index": "not_analyzed"
+        },
+        "trip_summary": {
+          "type": "string"
+        },
+        "trip_price_usd": {
+          "type": "long"
         }
       }
     },
     "flight": {
       "properties": {
-        "airline": {
-          "type": "string",
-          "index": "not_analyzed"
-        },
-        "flight_departure_date": {
-          "format": "strict_date_optional_time||epoch_millis",
-          "type": "date"
-        },
-        "fare_info": {
-          "type": "string"
-        },
-        "flight_key": {
-          "type": "string",
-          "index": "not_analyzed"
-        },
-        "flight_number": {
-          "type": "string",
-          "index": "not_analyzed"
-        },
-        "flight_origin_city": {
-          "type": "string",
-          "index": "not_analyzed"
-        },
-        "plane": {
-          "type": "string",
-          "index": "not_analyzed"
-        },
-        "price_usd": {
-          "type": "long"
-        },
-        "search_date": {
+      	"search_date": {
           "format": "strict_date_optional_time||epoch_millis",
           "type": "date"
         },
         "search_day_of_the_week": {
           "type": "string",
           "index": "not_analyzed"
-        },
-        "stopover": {
-          "type": "long"
-        },
-        "flight_destination_city": {
-          "type": "string",
-          "index": "not_analyzed"
-        },
-        "flight_origin_coordinates": {
-          "type": "geo_point"
-        },
-        "flight_destination_coordinates": {
-          "type": "geo_point"
         },
         "trip_departure_date": {
           "format": "strict_date_optional_time||epoch_millis",
@@ -132,12 +89,12 @@ const (
           "type": "string",
           "index": "not_analyzed"
         },
+        "trip_origin_coordinates": {
+          "type": "geo_point"
+        },
         "trip_destination_city": {
           "type": "string",
           "index": "not_analyzed"
-        },
-        "trip_origin_coordinates": {
-          "type": "geo_point"
         },
         "trip_destination_coordinates": {
           "type": "geo_point"
@@ -146,13 +103,56 @@ const (
           "type": "string",
           "index": "not_analyzed"
         },
-        "flight_origin_arrival_time": {
+        "trip_summary": {
+          "type": "string"
+        },
+        "trip_price_usd": {
+          "type": "long"
+        },
+        "flight_departure_date": {
+          "format": "strict_date_optional_time||epoch_millis",
+          "type": "date"
+        },
+        "flight_destination_arrival_time": {
           "format": "strict_date_optional_time||epoch_millis",
           "type": "date"
         },
         "flight_destination_departure_time": {
           "format": "strict_date_optional_time||epoch_millis",
           "type": "date"
+        },
+        "flight_origin_city": {
+          "type": "string",
+          "index": "not_analyzed"
+        },
+        "flight_origin_coordinates": {
+          "type": "geo_point"
+        },
+        "flight_destination_city": {
+          "type": "string",
+          "index": "not_analyzed"
+        },
+        "flight_destination_coordinates": {
+          "type": "geo_point"
+        },
+        "flight_airline": {
+          "type": "string",
+          "index": "not_analyzed"
+        },
+        "flight_number": {
+          "type": "string",
+          "index": "not_analyzed"
+        },
+        "flight_plane": {
+          "type": "string",
+          "index": "not_analyzed"
+        },
+        "flight_key": {
+          "type": "string",
+          "index": "not_analyzed"
+        },
+        "flight_stopover": {
+          "type": "long"
         }
       }
     }
@@ -162,44 +162,44 @@ const (
 
 type ElasticTrip struct {
 	SearchDate             time.Time   `json:"search_date"`
-	Date                   time.Time   `json:"trip_date"`
-	ReturnDate             time.Time   `json:"trip_return_date"`
 	SearchDateOfTheWeek    string      `json:"search_day_of_the_week"`
+	Date                   time.Time   `json:"trip_date"`
 	DayOfTheWeek           string      `json:"trip_day_of_the_week"`
+	ReturnDate             time.Time   `json:"trip_return_date"`
 	ReturnDayOfTheWeek     string      `json:"trip_return_day_of_the_week"`
 	OriginCity             string      `json:"trip_origin_city"`
 	OriginCoordinates      string      `json:"trip_origin_coordinates"`
 	DestinationCity        string      `json:"trip_destination_city"`
 	DestinationCoordinates string      `json:"trip_destination_coordinates"`
-	Provider               string      `json:"provider"`
+	Provider               string      `json:"trip_provider"`
 	MainAirline            string 	   `json:"trip_main_airline"`
-	FareInfo               string      `json:"fare_info"`
-	PriceInUSD             int         `json:"price_usd"`
+	Summary                string      `json:"trip_summary"`
+	PriceInUSD             int         `json:"trip_price_usd"`
 }
 
 type ElasticFlight struct {
 	SearchDate                 time.Time  `json:"search_date"`
-	DepartureDate              time.Time  `json:"flight_departure_date"`
-	TripDepartureDate          time.Time  `json:"trip_departure_date"`
-	OriginArrivalTime          time.Time  `json:"flight_origin_arrival_time"`
-	DestinationDepartureTime   time.Time  `json:"flight_destination_departure_time"`
 	SearchDateOfTheWeek        string     `json:"search_day_of_the_week"`
+	TripDepartureDate          time.Time  `json:"trip_departure_date"`
+	TripOriginCity             string     `json:"trip_origin_city"`
+	TripOriginCoordinates      string     `json:"trip_origin_coordinates"`
+	TripDestinationCity        string     `json:"trip_destination_city"`
+	TripDestinationCoordinates string     `json:"trip_destination_coordinates"`
+	TripMainAirline            string     `json:"trip_main_airline"`
+	TripSummary                string     `json:"trip_summary"`
+	TripPriceInUSD             int        `json:"trip_price_usd"`
+	DepartureDate              time.Time  `json:"flight_departure_date"`
+	DestinationArrivalTime     time.Time  `json:"flight_destination_arrival_time"`
+	DestinationDepartureTime   time.Time  `json:"flight_destination_departure_time"`
 	OriginCity                 string     `json:"flight_origin_city"`
 	OriginCoordinates          string     `json:"flight_origin_coordinates"`
 	DestinationCity            string     `json:"flight_destination_city"`
 	DestinationCoordinates     string     `json:"flight_destination_coordinates"`
-	TripOriginCity             string     `json:"trip_origin_city"`
-	TripDestinationCity        string     `json:"trip_destination_city"`
-	TripOriginCoordinates      string     `json:"trip_origin_coordinates"`
-	TripDestinationCoordinates string     `json:"trip_destination_coordinates"`
-	TripMainAirline            string     `json:"trip_main_airline"`
-	Airline                    string     `json:"airline"`
+	Airline                    string     `json:"flight_airline"`
 	FlightNumber               string     `json:"flight_number"`
-	Plane                      string     `json:"plane"`
-	FareInfo                   string     `json:"fare_info"`
+	Plane                      string     `json:"flight_plane"`
 	Key                        string     `json:"flight_key"`
-	StopOver                   int        `json:"stopover"`
-	PriceInUSD                 int        `json:"price_usd"`
+	StopOver                   int        `json:"flight_stopover"`
 }
 
 func ReportElasticSearch(host string, port int, index string, fares []agents.Fare) {
@@ -293,13 +293,13 @@ func CreateElasticFlight(trip *ElasticTrip, flight *agents.Flight, nextFlight *a
 		Key:                    	key,
 		SearchDate:             	trip.SearchDate,
 		DepartureDate:          	flight.DepartureTime,
-		OriginArrivalTime: 		flight.ArrivalTime,
+		DestinationArrivalTime: 	flight.ArrivalTime,
 		SearchDateOfTheWeek:    	trip.SearchDateOfTheWeek,
 		Airline:                	GetAirlineName(flight.Airline),
 		FlightNumber:           	flight.Airline + flight.FlightNumber,
 		Plane:                  	flight.Plane,
-		FareInfo:               	trip.FareInfo,
-		PriceInUSD:             	trip.PriceInUSD,
+		TripSummary:               	trip.Summary,
+		TripPriceInUSD:             	trip.PriceInUSD,
 		TripDepartureDate:        	trip.Date,
 		TripOriginCity:        		trip.OriginCity,
 		TripOriginCoordinates:      	trip.OriginCoordinates,
@@ -339,7 +339,7 @@ func CreateElasticFare(fare *agents.Fare, priceInfo *agents.PriceInfo) *ElasticT
 		SearchDateOfTheWeek: 	fare.Date.Weekday().String(),
 		PriceInUSD: 		int(priceInfo.Price),
 		Provider: 		priceInfo.Agent,
-		FareInfo: 		fare.PrettyString(),
+		Summary: 		fare.PrettyString(),
 		Date:			trip.Flights[0].DepartureTime,
 		DayOfTheWeek:		trip.Flights[0].DepartureTime.Weekday().String(),
 	}
