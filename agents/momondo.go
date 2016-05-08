@@ -153,7 +153,7 @@ func parseFares(searchResult *momondo.SearchResult, references *ReferenceFiles) 
 				itineraries = append(itineraries, Itinerary{flights})
 			}
 
-			price := PriceInfo{offer.TotalPrice, offer.Currency, supplier.DisplayName}
+			price := PriceInfo{offer.TotalPrice, offer.Currency, supplier.DisplayName, offer.DeepLink}
 
 			var existingFare *Fare
 

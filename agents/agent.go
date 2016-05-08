@@ -46,6 +46,7 @@ type PriceInfo struct {
 	Price    float64
 	Currency string
 	Agent    string
+	Link 	 string
 }
 
 func (fare Fare) PrettyString() string {

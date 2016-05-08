@@ -100,6 +100,7 @@ type Offer struct {
 	AdultPriceEUR     float64
 	AdultPriceExclTax float64
 	Currency          string
+	DeepLink	  string
 	FeeIndexes        []int
 	FlightIndex       int
 	TicketClassIndex  int

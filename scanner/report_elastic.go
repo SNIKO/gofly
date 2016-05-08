@@ -71,6 +71,10 @@ const (
         },
         "trip_price_usd": {
           "type": "long"
+        },
+        "trip_provider_link": {
+          "type": "string",
+          "index": "not_analyzed"
         }
       }
     },
@@ -113,6 +117,10 @@ const (
         },
         "trip_price_usd": {
           "type": "long"
+        },
+        "trip_provider_link": {
+          "type": "string",
+          "index": "not_analyzed"
         },
         "flight_departure_date": {
           "format": "strict_date_optional_time||epoch_millis",
@@ -187,6 +195,7 @@ type ElasticTrip struct {
 	MainAirline            string      `json:"trip_main_airline"`
 	Summary                string      `json:"trip_summary"`
 	PriceInUSD             int         `json:"trip_price_usd"`
+	ProviderLink           string 	   `json:"trip_provider_link"`
 }
 
 type ElasticFlight struct {
@@ -200,6 +209,7 @@ type ElasticFlight struct {
 	TripMainAirline            string     `json:"trip_main_airline"`
 	TripSummary                string     `json:"trip_summary"`
 	TripPriceInUSD             int        `json:"trip_price_usd"`
+	TripProviderLink           string     `json:"trip_provider_link"`
 	DepartureDate              time.Time  `json:"flight_departure_date"`
 	DestinationArrivalTime     time.Time  `json:"flight_destination_arrival_time"`
 	DestinationDepartureTime   time.Time  `json:"flight_destination_departure_time"`
@@ -312,6 +322,7 @@ func CreateElasticFlight(trip *ElasticTrip, flight *agents.Flight, nextFlight *a
 		Plane:                  	flight.Plane,
 		TripSummary:               	trip.Summary,
 		TripPriceInUSD:             	trip.PriceInUSD,
+		TripProviderLink:		trip.ProviderLink,
 		TripDepartureDate:        	trip.Date,
 		TripOriginCity:        		trip.OriginCity,
 		TripOriginCoordinates:      	trip.OriginCoordinates,
@@ -350,6 +361,7 @@ func CreateElasticFare(fare *agents.Fare, priceInfo *agents.PriceInfo) *ElasticT
 		SearchDate: 		fare.Date,
 		SearchDateOfTheWeek: 	fare.Date.Weekday().String(),
 		PriceInUSD: 		int(priceInfo.Price),
+		ProviderLink: 		priceInfo.Link,
 		Provider: 		priceInfo.Agent,
 		Summary: 		fare.PrettyString(),
 		Date:			trip.Flights[0].DepartureTime,
