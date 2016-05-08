@@ -79,16 +79,26 @@ func main() {
 	}
 
 	for i, _ := range fares {
-		if (fares[i].Prices[0].Currency == "USD") {
-			continue
+		convertedPrices := []agents.PriceInfo{}
+
+		for _, priceInfo := range fares[i].Prices {
+			if (priceInfo.Currency == "USD") {
+				convertedPrices = append(convertedPrices, priceInfo)
+				continue
+			}
+
+			rate := rates.Find(priceInfo.Currency, "USD")
+
+			if (rate != nil) {
+				usdPrice := priceInfo.Price * rate.Rate
+				usdPriceInfo := agents.PriceInfo{usdPrice, "USD", priceInfo.Agent, priceInfo.Link}
+
+				convertedPrices = append(convertedPrices, priceInfo)
+				convertedPrices = append(convertedPrices, usdPriceInfo)
+			}
 		}
 
-		rate := rates.Find(fares[i].Prices[0].Currency, "USD")
-
-		if (rate != nil) {
-			usdPrice := fares[i].Prices[0].Price * rate.Rate
-			fares[i].Prices = append(fares[i].Prices, agents.PriceInfo{usdPrice, "USD", fares[i].Prices[0].Agent})
-		}
+		fares[i].Prices = convertedPrices
 	}
 
 	sort.Sort(agents.FaresByPrice(fares))
