@@ -66,6 +66,10 @@ const (
           "type": "string",
           "index": "not_analyzed"
         },
+        "trip_planes": {
+          "type": "string",
+          "index": "not_analyzed"
+        },
         "trip_summary": {
           "type": "string"
         },
@@ -193,9 +197,10 @@ type ElasticTrip struct {
 	DestinationCoordinates *Location   `json:"trip_destination_coordinates"`
 	Provider               string      `json:"trip_provider"`
 	MainAirline            string      `json:"trip_main_airline"`
+	Planes                 []string    `json:"trip_planes"`
 	Summary                string      `json:"trip_summary"`
 	PriceInUSD             int         `json:"trip_price_usd"`
-	ProviderLink           string 	   `json:"trip_provider_link"`
+	ProviderLink           string      `json:"trip_provider_link"`
 }
 
 type ElasticFlight struct {
@@ -252,30 +257,37 @@ func ReportElasticSearch(host string, port int, index string, fares []agents.Far
 	fmt.Printf("elastic: Indexing %d fares and %d flights...\n", len(elasticFares), len(elasticFlights))
 
 	start := time.Now()
-	BulkIndex(es, index, "trip", elasticFares)
-	BulkIndex(es, index, "flight", elasticFlights)
+	Index(es, index, "trip", elasticFares)
+	Index(es, index, "flight", elasticFlights)
 	elapsed := time.Since(start)
 
 	fmt.Printf("elastic: Indexing completed. Elapsed time: %s\n", elapsed)
 }
 
-func BulkIndex(client *elasticsearch.Client, index string, documentType string, documents []interface{}) {
+func Index(client *elasticsearch.Client, index string, documentType string, documents []interface{}) {
 	batch := []elasticsearch.BulkCommand {}
 
 	for _, doc := range documents {
 		batch = append(batch, elasticsearch.IndexCommand{Index: index, DocumentType: documentType, Content: doc})
 
 		if (len(batch) >= BatchSize) {
-			res, err := client.Bulk(batch)
-			if (err != nil) {
-				fmt.Printf("%s elastic: an error occurred when indexing a %s batch of size %d: %s\n", time.Now().String(), documentType, len(batch), err)
-			} else {
-				if (res.Errors) {
-					fmt.Printf("%s elastic: an error occurred when indexing a %s batch of size %d\n", time.Now().String(), documentType, len(batch))
-				}
-			}
-
+			BulkIndex(client, documentType, batch)
 			batch = []elasticsearch.BulkCommand{}
+		}
+	}
+
+	if (len(batch) > 0) {
+		BulkIndex(client, documentType, batch)
+	}
+}
+
+func BulkIndex(client *elasticsearch.Client, documentType string, batch []elasticsearch.BulkCommand) {
+	res, err := client.Bulk(batch)
+	if (err != nil) {
+		fmt.Printf("%s elastic: an error occurred when indexing a %s batch of size %d: %s\n", time.Now().String(), documentType, len(batch), err)
+	} else {
+		if (res.Errors) {
+			fmt.Printf("%s elastic: an error occurred when indexing a %s batch of size %d\n", time.Now().String(), documentType, len(batch))
 		}
 	}
 }
@@ -391,20 +403,26 @@ func CreateElasticFare(fare *agents.Fare, priceInfo *agents.PriceInfo) *ElasticT
 		elasticFare.ReturnDayOfTheWeek = elasticFare.ReturnDate.Weekday().String()
 	}
 
-	// Main Airline
+	// Main Airline, planes
 	mainAirline := ""
+	planes := map[string]struct{}{}
 	flightDuration := map[string]float64{}
 	for _, itinerary := range fare.Itineraries {
 		for _, flight := range itinerary.Flights {
 			airline := GetAirlineName(flight.Airline)
 			duration := flight.ArrivalTime.Sub(flight.DepartureTime).Hours()
 
+			planes[flight.Plane] = struct{}{}
 			flightDuration[airline] += duration
 
 			if (mainAirline != airline && flightDuration[airline] > flightDuration[mainAirline]) {
 				mainAirline = airline
 			}
 		}
+	}
+
+	for key := range(planes) {
+		elasticFare.Planes = append(elasticFare.Planes, key)
 	}
 
 	elasticFare.MainAirline = mainAirline
