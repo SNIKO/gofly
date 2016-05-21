@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"bytes"
 	"fmt"
+	"github.com/sniko/gofly/references/airports"
+	"errors"
+	"time"
 )
 
 func NewRequest(adultCount int, culture string, ticketClass string, segments []Direction) *SearchRequest {
@@ -58,5 +61,47 @@ func PollSearchResults(searchId string, engineId int) (*SearchResult, error) {
 		return nil, err
 	}
 
+	err = adjustTimeZones(&res)
+	if (err != nil) {
+		return nil, err
+	}
+
 	return &res, nil
+}
+
+func adjustTimeZones(result *SearchResult) error {
+	if (result.Legs == nil) {
+		return nil
+	}
+
+	for i, _ := range *result.Legs {
+		leg := &(*result.Legs)[i]
+
+		if (len(leg.Key) != 24) {
+			return errors.New(fmt.Sprintf("Unknown key format. Can't determine airports from key '%s' and thus cannot adjust time zones.", leg.Key))
+		}
+
+		// Trying to determine airports from key as at this stage we don't have access to complete reference files received from poll results.
+		// The key format is: OS0025VIE01162320BKK1520
+		origin := leg.Key[6:9]
+		destination := leg.Key[17:20]
+
+		originLocation, err := airports.GetLocation(origin)
+		if (err != nil) {
+			return errors.New(fmt.Sprintf("Cannot find the time zone for origin '%s' extracted from leg key '%s': %s", origin, leg.Key, err))
+		}
+
+		destinationLocation, err := airports.GetLocation(destination)
+		if (err != nil) {
+			return errors.New(fmt.Sprintf("Cannot find the time zone for destination'%s' extracted from leg key '%s': %s", destination, leg.Key, err))
+		}
+
+		t := time.Time(leg.DepartureDateRaw)
+		leg.DepartureDate = time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), originLocation)
+
+		t = time.Time(leg.ArrivalDateRaw)
+		leg.ArrivalDate  = time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), destinationLocation)
+	}
+
+	return nil
 }

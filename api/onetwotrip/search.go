@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"net/http"
 	"encoding/json"
+	"github.com/sniko/gofly/references/airports"
 )
 
 type Duration time.Duration
@@ -35,18 +36,19 @@ type Fare struct {
 }
 
 type Trip struct {
-	StartDate   	string `json:"stDt"`
-	StartTime 	string `json:"stTm"`
-	EndDate   	string `json:"endDate"`
-	EndTime 	string `json:"endTm"`
+	StartDate       string 	 `json:"stDt"`
+	StartTime       string 	 `json:"stTm"`
+	EndDate         string 	 `json:"endDate"`
+	EndTime         string 	 `json:"endTm"`
+	DayChange       int 	 `json:"DayChg"`
 	FlightDuration  Duration `json:"fltTm"`
 	JourneyDuration Duration `json:"jrnTm"`
-	From            string 	`json:"from"`
-	To              string 	`json:"to"`
-	AirlineCode     string 	`json:"airCmp"`
-	FlightNumber    string 	`json:"fltNm"`
-	OperatedBy      string 	`json:"oprdBy"`
-	Plane           string 	`json:"plane"`
+	From            string   `json:"from"`
+	To              string   `json:"to"`
+	AirlineCode     string   `json:"airCmp"`
+	FlightNumber    string   `json:"fltNm"`
+	OperatedBy      string   `json:"oprdBy"`
+	Plane           string   `json:"plane"`
 }
 
 type Direction struct {
@@ -91,7 +93,7 @@ func Search(query SearchQuery) (*SearchResult, error) {
 func getSearchUrl(query SearchQuery) string {
 	var route bytes.Buffer
 
-	// A root is concatenation of flights. Each flight has the following format: DDMMFromAirportToAirport
+	// A route is concatenation of flights. Each flight has the following format: DDMMFromAirportToAirport
 	// For example, route "2408SYDIEV1509IEVSYD" has two flights, a direct one from SYD to IEV on August 24
 	// and a return one from IEV to SYD on September 15.
 	for _, flight := range query.Flights {
@@ -105,34 +107,6 @@ func getSearchUrl(query SearchQuery) string {
 
 func (p *PriceInfo) TotalPrice() float64 {
 	return p.AdultFare + p.AdultTaxes + p.Markup
-}
-
-func (t *Trip) DepartureTime() (*time.Time, error) {
-	dateTime := t.StartDate + t.StartTime
-
-	time, err := time.Parse("200601021504", dateTime)
-	if (err != nil) {
-		return nil, err
-	}
-
-	return &time, nil
-}
-
-func (t *Trip) ArrivalTime() (*time.Time, error) {
-	var dateTime string
-	if (t.EndDate != "") {
-		dateTime = t.EndDate + t.EndTime
-	} else
-	{
-		dateTime = t.StartDate + t.EndTime
-	}
-
-	time, err := time.Parse("200601021504", dateTime)
-	if (err != nil) {
-		return nil, err
-	}
-
-	return &time, nil
 }
 
 func (d *Duration) UnmarshalJSON(b []byte) error {
@@ -156,4 +130,45 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 
 	*d = Duration(time.Duration(hours) * time.Hour + time.Duration(minutes) * time.Minute)
 	return nil
+}
+
+func (t *Trip) DepartureTime() (*time.Time, error) {
+	localTime := t.StartDate + t.StartTime
+	return parseTime(localTime, t.From)
+}
+
+func (t *Trip) ArrivalTime() (*time.Time, error) {
+	var localTime string
+	var dayChange int
+
+	if (t.EndDate != "") {
+		localTime = t.EndDate + t.EndTime
+		dayChange = 0
+	} else
+	{
+		localTime = t.StartDate + t.EndTime
+		dayChange = t.DayChange
+	}
+
+	tm, err := parseTime(localTime, t.To)
+	if (err != nil) {
+		return nil, err
+	}
+
+	*tm = tm.AddDate(0, 0, dayChange)
+	return tm, nil
+}
+
+func parseTime(localTime string, airport string) (*time.Time, error) {
+	location, err := airports.GetLocation(airport)
+	if (err != nil) {
+		return nil, err
+	}
+
+	time, err := time.ParseInLocation("200601021504", localTime, location)
+	if (err != nil) {
+		return nil, err
+	}
+
+	return &time, nil
 }

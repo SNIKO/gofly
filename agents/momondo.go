@@ -3,7 +3,6 @@ package agents
 import (
 	"time"
 	"github.com/sniko/gofly/api/momondo"
-	"github.com/sniko/gofly/references/airports"
 	"strconv"
 	"reflect"
 )
@@ -127,20 +126,7 @@ func parseFares(searchResult *momondo.SearchResult, references *ReferenceFiles) 
 					destination := references.Airports[leg.DestinationIndex]
 					airline := references.Airlines[leg.AirlineIndex]
 
-					originLocation, err := airports.GetLocation(origin.IATACode)
-					if (err != nil) {
-						return nil, err
-					}
-
-					destinationLocation, err := airports.GetLocation(destination.IATACode)
-					if (err != nil) {
-						return nil, err
-					}
-
-					departure := leg.DepartureDate().In(originLocation)
-					arrival := leg.ArrivalDate().In(destinationLocation)
-
-					flight := Flight{departure, arrival, origin.IATACode, destination.IATACode, airline.IATACode, strconv.Itoa(leg.FlightNumber), "", "", ticketClass.Code, ticketClass.Name }
+					flight := Flight{leg.DepartureDate, leg.ArrivalDate, origin.IATACode, destination.IATACode, airline.IATACode, strconv.Itoa(leg.FlightNumber), "", "", ticketClass.Code, ticketClass.Name }
 					flights = append(flights, flight)
 				}
 

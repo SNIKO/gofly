@@ -4,7 +4,6 @@ import (
 	"github.com/sniko/gofly/api/onetwotrip"
 	"errors"
 	"fmt"
-	"github.com/sniko/gofly/references/airports"
 	"time"
 )
 
@@ -99,16 +98,6 @@ func getFlight(result *onetwotrip.SearchResult, tripRef *onetwotrip.TripRef) (*F
 
 	trip := result.Trips[tripRef.Id]
 
-	originLocation, err := airports.GetLocation(trip.From)
-	if (err != nil) {
-		return nil, err
-	}
-
-	destinationLocation, err := airports.GetLocation(trip.To)
-	if (err != nil) {
-		return nil, err
-	}
-
 	departureTime, err := trip.DepartureTime()
 	if (err != nil) {
 		return nil, err
@@ -119,8 +108,6 @@ func getFlight(result *onetwotrip.SearchResult, tripRef *onetwotrip.TripRef) (*F
 		return nil, err
 	}
 
-	*departureTime = departureTime.In(originLocation)
-	*arrivalTime = arrivalTime.In(destinationLocation)
 	plane := result.Planes[trip.Plane]
 
 	flight := Flight{

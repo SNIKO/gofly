@@ -85,7 +85,9 @@ type Flight struct {
 type Leg struct {
 	AirlineIndex        int
 	ArrivalDateRaw      LegDate `json:"Arrival"`
+	ArrivalDate         time.Time
 	DepartureDateRaw    LegDate `json:"Departure"`
+	DepartureDate       time.Time
 	DestinationIndex    int
 	OriginIndex         int
 	Duration            int
@@ -143,12 +145,4 @@ func (date *LegDate) UnmarshalJSON(b []byte) error {
 	}
 
 	return err
-}
-
-func (leg Leg) DepartureDate() time.Time {
-	return time.Time(leg.DepartureDateRaw)
-}
-
-func (leg Leg) ArrivalDate() time.Time {
-	return time.Time(leg.ArrivalDateRaw)
 }
