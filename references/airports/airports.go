@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"strings"
 	"errors"
+	"time"
 	"fmt"
 )
 
@@ -38,6 +39,20 @@ func GetByIATACode(code string) (Airport, error) {
 	} else {
 		return airport, errors.New(fmt.Sprintf("There are no airport with IATA code '%s'", code))
 	}
+}
+
+func GetLocation(iataCode string) (*time.Location, error) {
+	airport, err := GetByIATACode(iataCode)
+	if (err != nil) {
+		return nil, err
+	}
+
+	location, err := time.LoadLocation(airport.Timezone)
+	if (err != nil) {
+		return nil, err
+	}
+
+	return location, nil
 }
 
 func LoadAirports() (map[string]Airport, error) {

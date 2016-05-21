@@ -11,6 +11,7 @@ import (
 	"bufio"
 	"os"
 	"time"
+	"sync"
 )
 
 type TripInfo struct {
@@ -35,6 +36,36 @@ func (t TripInfo) ShortString() string {
 	return fmt.Sprintf("%s %s", t.Route[0].Date.Format("02 Jan"), strings.Join(airports, "-"))
 }
 
+func getRates(trip TripInfo) <-chan agents.Fares {
+	wg := sync.WaitGroup{}
+	out := make(chan agents.Fares)
+	providers := []agents.Agent{agents.Momondo{}, agents.OneTwoTrip{}}
+
+	for _, provider := range providers {
+		wg.Add(1)
+
+		go func(agent agents.Agent) {
+			defer wg.Done()
+			fmt.Printf("%s: Searching flights for route '%s'\n", agent.Name(), trip)
+			rates, err := agent.Search(trip.Route)
+			if (err != nil) {
+				fmt.Printf("%s: An error occurred when loading fares for route '%s': %s\n", agent.Name(), trip, err)
+				return
+			}
+
+			fmt.Printf("%s: %d fares for route '%s' have been loaded\n", agent.Name(), len(rates), trip)
+			out <- rates
+		}(provider)
+	}
+
+	go func(){
+		wg.Wait()
+		close(out)
+	}()
+
+	return out
+}
+
 func main() {
 	config, err := loadConfig()
 	if (err != nil) {
@@ -46,21 +77,10 @@ func main() {
 
 	fares := agents.Fares{}
 
-	var agent agents.Agent
-	agent = agents.Momondo{}
-
 	for _, trip := range trips {
-		fmt.Printf("Searching flights for route '%s'... ", trip.String())
-
-		f, err := agent.Search(trip.Route)
-		if (err != nil) {
-			fmt.Println(err)
-			continue
+		for tripFares := range getRates(trip) {
+			fares = append(fares, tripFares...)
 		}
-
-		fmt.Printf("completed, %d options found\n", len(f))
-
-		fares = append(fares, f...)
 	}
 
 	currencies := yahoo.CurrencyPairs{}

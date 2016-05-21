@@ -119,6 +119,7 @@ func (prices Prices) String() string {
 }
 
 type Agent interface {
+	Name() string
 	Search(directions []FlightDirection) (Fares, error)
 }
 

@@ -51,6 +51,10 @@ func (references *ReferenceFiles) Update(searchResult *momondo.SearchResult) {
 	}
 }
 
+func (client Momondo) Name() string {
+	return "Momondo"
+}
+
 func (client Momondo) Search(directions []FlightDirection) (Fares, error) {
 	searchId, engineId, err := startSearch(directions)
 	if err != nil {
@@ -123,22 +127,12 @@ func parseFares(searchResult *momondo.SearchResult, references *ReferenceFiles) 
 					destination := references.Airports[leg.DestinationIndex]
 					airline := references.Airlines[leg.AirlineIndex]
 
-					originAirport, err := airports.GetByIATACode(origin.IATACode)
+					originLocation, err := airports.GetLocation(origin.IATACode)
 					if (err != nil) {
 						return nil, err
 					}
 
-					destinationAirport, err := airports.GetByIATACode(destination.IATACode)
-					if (err != nil) {
-						return nil, err
-					}
-
-					originLocation, err := time.LoadLocation(originAirport.Timezone)
-					if (err != nil) {
-						return nil, err
-					}
-
-					destinationLocation, err := time.LoadLocation(destinationAirport.Timezone)
+					destinationLocation, err := airports.GetLocation(destination.IATACode)
 					if (err != nil) {
 						return nil, err
 					}
