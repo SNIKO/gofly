@@ -126,15 +126,15 @@ const (
           "type": "string",
           "index": "not_analyzed"
         },
-        "flight_departure_date": {
+        "flight_departure_time": {
           "format": "strict_date_optional_time||epoch_millis",
           "type": "date"
         },
-        "flight_destination_arrival_time": {
+        "flight_arrival_time": {
           "format": "strict_date_optional_time||epoch_millis",
           "type": "date"
         },
-        "flight_destination_departure_time": {
+        "flight_next_flight_departure_time": {
           "format": "strict_date_optional_time||epoch_millis",
           "type": "date"
         },
@@ -215,9 +215,9 @@ type ElasticFlight struct {
 	TripSummary                string     `json:"trip_summary"`
 	TripPriceInUSD             int        `json:"trip_price_usd"`
 	TripProviderLink           string     `json:"trip_provider_link"`
-	DepartureDate              time.Time  `json:"flight_departure_date"`
-	DestinationArrivalTime     time.Time  `json:"flight_destination_arrival_time"`
-	DestinationDepartureTime   time.Time  `json:"flight_destination_departure_time"`
+	DepartureTime              time.Time  `json:"flight_departure_time"`
+	ArrivalTime                time.Time  `json:"flight_arrival_time"`
+	NextFlightDepartureTime    time.Time  `json:"flight_next_flight_departure_time"`
 	OriginCity                 string     `json:"flight_origin_city"`
 	OriginCoordinates          *Location  `json:"flight_origin_coordinates"`
 	DestinationCity            string     `json:"flight_destination_city"`
@@ -326,8 +326,8 @@ func CreateElasticFlight(trip *ElasticTrip, flight *agents.Flight, nextFlight *a
 	elasticFlight := ElasticFlight{
 		Key:                    	key,
 		SearchDate:             	trip.SearchDate,
-		DepartureDate:          	flight.DepartureTime,
-		DestinationArrivalTime: 	flight.ArrivalTime,
+		DepartureTime:          	flight.DepartureTime,
+		ArrivalTime: 			flight.ArrivalTime,
 		SearchDateOfTheWeek:    	trip.SearchDateOfTheWeek,
 		Airline:                	GetAirlineName(flight.Airline),
 		FlightNumber:           	flight.Airline + flight.FlightNumber,
@@ -347,7 +347,7 @@ func CreateElasticFlight(trip *ElasticTrip, flight *agents.Flight, nextFlight *a
 		stopOver := int(nextFlight.DepartureTime.Sub(flight.ArrivalTime).Hours())
 
 		elasticFlight.StopOver = stopOver
-		elasticFlight.DestinationDepartureTime = nextFlight.DepartureTime
+		elasticFlight.NextFlightDepartureTime = nextFlight.DepartureTime
 	}
 
 	city, coordinates := GetAirportInfo(flight.FromAirport)
