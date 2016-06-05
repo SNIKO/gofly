@@ -29,14 +29,22 @@ func (r *Rates) UnmarshalJSON(b []byte) (err error) {
 	return
 }
 
-func (r *Rate) From(currency string) bool {
+func (r *Rate) From() string {
 	currencies := strings.Split(r.Name, "/")
-	return len(currencies) > 0 && currencies[0] == currency
+	if (len(currencies) > 0) {
+		return currencies[0]
+	} else {
+		return ""
+	}
 }
 
-func (r *Rate) To(currency string) bool {
+func (r *Rate) To() string {
 	currencies := strings.Split(r.Name, "/")
-	return len(currencies) > 1 && currencies[1] == currency
+	if (len(currencies) > 1) {
+		return currencies[1]
+	} else {
+		return ""
+	}
 }
 
 func (rates *Rates) Find(from string, to string) *Rate {
@@ -44,7 +52,7 @@ func (rates *Rates) Find(from string, to string) *Rate {
 		return nil;
 	}
 
-	return rates.Filter(func (r Rate) bool { return r.From(from) && r.To(to) } ).HeadOrNil()
+	return rates.Filter(func (r Rate) bool { return r.From() == from && r.To() == to } ).HeadOrNil()
 }
 
 func (rates *Rates) Filter(predicate func (Rate) bool) Rates {

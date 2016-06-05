@@ -1,6 +1,8 @@
 package main
 import (
 	"time"
+	"encoding/json"
+	"io/ioutil"
 )
 
 type Config struct {
@@ -39,4 +41,19 @@ func (d *ConfigDate) UnmarshalJSON(b []byte) error {
 
 	d.time = date
 	return nil
+}
+
+func loadConfig(path string) (*Config, error) {
+	configFile, err := ioutil.ReadFile(path)
+	if (err != nil) {
+		return nil, err
+	}
+
+	var config Config
+	err = json.Unmarshal(configFile, &config)
+	if (err != nil) {
+		return nil, err
+	}
+
+	return &config, err
 }
