@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/sniko/gofly/references/airlines"
 	"github.com/sniko/gofly/references/airports"
+	"text/tabwriter"
 )
 
 type FlightDirection struct {
@@ -67,44 +68,57 @@ func (fare Fare) PrettyString() string {
 	}
 
 	route := strings.Join(departureAirports, "-")
-	dates := strings.Join(departureDates, ", ")
-
+	dates := strings.Join(departureDates, " - ")
 	result.WriteString(fmt.Sprintf("%s\t%s\tPrice: %s\n", route, dates, fare.Prices))
 
+	flightsWriter := bytes.NewBufferString("")
+	tabWriter := new(tabwriter.Writer)
+	tabWriter.Init(flightsWriter, 2, 8, 1, '\t', 0)
+	write := func(columns... string) {
+		fmt.Fprintln(tabWriter, "\t", strings.Join(columns, "\t"))
+	}
+
 	for i, itinerary := range fare.Itineraries {
-		result.WriteString(fmt.Sprintf("\tFlight %d\n", i))
+		write(fmt.Sprintf("Flight %d", i), "", "", "", "", "", "", "")
 
 		for j, flight := range itinerary.Flights {
-			var airlineName string
-			var cityName string
+			airline := getAirlineName(flight.Airline)
+			destination := getCityName(flight.ToAirport)
+			planes := strings.Join(flight.Planes, ", ")
 
-			airline, err := airlines.GetByIATACode(flight.Airline)
-			if (err != nil) {
-				airlineName = err.Error()
-			} else {
-				airlineName = airline.Name
-			}
-
-			airport, err := airports.GetByIATACode(flight.ToAirport)
-			if (err != nil) {
-				cityName = flight.ToAirport
-			} else {
-				cityName = airport.City
-			}
-
+			stopover := ""
 			if j < len(itinerary.Flights) - 1 {
 				thisFlight := itinerary.Flights[j]
-				nextFlight := itinerary.Flights[j+1]
-				stopOver := nextFlight.DepartureTime.Sub(thisFlight.ArrivalTime)
-
-				result.WriteString(fmt.Sprintf("\t\t%s %4s %15s %s %s, stopover %s\n", flight.Airline, flight.FlightNumber, cityName, flight.DepartureTime, airlineName, stopOver))
-			} else {
-				result.WriteString(fmt.Sprintf("\t\t%s %4s %15s %s %s\n", flight.Airline, flight.FlightNumber, cityName, flight.DepartureTime, airlineName))
+				nextFlight := itinerary.Flights[j + 1]
+				stopover = nextFlight.DepartureTime.Sub(thisFlight.ArrivalTime).String()
 			}
+
+			write("", flight.Airline, flight.FlightNumber, airline, planes, destination, flight.DepartureTime.String(), stopover)
 		}
 	}
 
+	tabWriter.Flush()
+	result.WriteString(flightsWriter.String())
+
 	return result.String()
+}
+
+func getAirlineName(iataCode string) string  {
+	airline, err := airlines.GetByIATACode(iataCode)
+	if (err != nil) {
+		return iataCode
+	} else {
+		return airline.Name
+	}
+}
+
+func getCityName(airportCode string) string  {
+	airport, err := airports.GetByIATACode(airportCode)
+	if (err != nil) {
+		return airportCode
+	} else {
+		return airport.City
+	}
 }
 
 func (fares *Fares) Filter(predicate func (Fare) bool) Fares {
