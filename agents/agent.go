@@ -37,7 +37,7 @@ type Flight struct {
 	Airline          string
 	FlightNumber     string
 	OperatedBy       string
-	Plane            string
+	Planes           []string
 	ReservationClass string
 	CabinClass       string
 }
@@ -48,6 +48,13 @@ type PriceInfo struct {
 	Agent    string
 	Link 	 string
 }
+
+type Agent interface {
+	Name() string
+	Search(directions []FlightDirection) (Fares, error)
+}
+
+type FaresByPrice []Fare
 
 func (fare Fare) PrettyString() string {
 	var result bytes.Buffer
@@ -100,12 +107,22 @@ func (fare Fare) PrettyString() string {
 	return result.String()
 }
 
-func (price PriceInfo) String() string {
-	return fmt.Sprintf("%s %.2f %s", price.Currency, price.Price, price.Agent)
+func (fares *Fares) Filter(predicate func (Fare) bool) Fares {
+	result := Fares {}
+
+	if (fares != nil && predicate != nil) {
+		for _, r := range *fares {
+			if (predicate(r)) {
+				result = append(result, r)
+			}
+		}
+	}
+
+	return result
 }
 
-func (d FlightDirection) String() string {
-	return fmt.Sprintf("%s -> %s %s", d.From, d.To, d.Date.Format("02 Jan"))
+func (price PriceInfo) String() string {
+	return fmt.Sprintf("%s %.2f %s", price.Currency, price.Price, price.Agent)
 }
 
 func (prices Prices) String() string {
@@ -118,12 +135,19 @@ func (prices Prices) String() string {
 	return strings.Join(p, ", ")
 }
 
-type Agent interface {
-	Name() string
-	Search(directions []FlightDirection) (Fares, error)
+func (prices *Prices) IsLessThan(price PriceInfo) bool {
+	for _, p := range *prices {
+		if (p.Currency == price.Currency) {
+			return p.Price < price.Price
+		}
+	}
+
+	return false
 }
 
-type FaresByPrice []Fare
+func (d FlightDirection) String() string {
+	return fmt.Sprintf("%s -> %s %s", d.From, d.To, d.Date.Format("02 Jan"))
+}
 
 func (a FaresByPrice) Len() int {
 	return len(a)
@@ -145,26 +169,6 @@ func (a FaresByPrice) Less(i, j int) bool {
 	return false
 }
 
-func (fares *Fares) Filter(predicate func (Fare) bool) Fares {
-	result := Fares {}
-
-	if (fares != nil && predicate != nil) {
-		for _, r := range *fares {
-			if (predicate(r)) {
-				result = append(result, r)
-			}
-		}
-	}
-
-	return result
-}
-
-func (prices *Prices) IsLessThan(price PriceInfo) bool {
-	for _, p := range *prices {
-		if (p.Currency == price.Currency) {
-			return p.Price < price.Price
-		}
-	}
-
-	return false
+func (f *Flight) CompleteFlightNumber() string {
+	return fmt.Sprintf("%s%s", f.Airline, f.FlightNumber)
 }

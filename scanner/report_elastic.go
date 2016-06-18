@@ -66,7 +66,7 @@ const (
           "type": "string",
           "index": "not_analyzed"
         },
-        "trip_planes": {
+        "trip_plane": {
           "type": "string",
           "index": "not_analyzed"
         },
@@ -197,7 +197,7 @@ type ElasticTrip struct {
 	DestinationCoordinates *Location   `json:"trip_destination_coordinates"`
 	Provider               string      `json:"trip_provider"`
 	MainAirline            string      `json:"trip_main_airline"`
-	Planes                 []string    `json:"trip_planes"`
+	Planes                 []string    `json:"trip_plane"`
 	Summary                string      `json:"trip_summary"`
 	PriceInUSD             int         `json:"trip_price_usd"`
 	ProviderLink           string      `json:"trip_provider_link"`
@@ -224,7 +224,7 @@ type ElasticFlight struct {
 	DestinationCoordinates     *Location  `json:"flight_destination_coordinates"`
 	Airline                    string     `json:"flight_airline"`
 	FlightNumber               string     `json:"flight_number"`
-	Plane                      string     `json:"flight_plane"`
+	Planes                     []string   `json:"flight_plane"`
 	Key                        string     `json:"flight_key"`
 	StopOver                   int        `json:"flight_stopover"`
 }
@@ -331,7 +331,7 @@ func CreateElasticFlight(trip *ElasticTrip, flight *agents.Flight, nextFlight *a
 		SearchDateOfTheWeek:    	trip.SearchDateOfTheWeek,
 		Airline:                	GetAirlineName(flight.Airline),
 		FlightNumber:           	flight.Airline + flight.FlightNumber,
-		Plane:                  	flight.Plane,
+		Planes:                  	flight.Planes,
 		TripSummary:               	trip.Summary,
 		TripPriceInUSD:             	trip.PriceInUSD,
 		TripProviderLink:		trip.ProviderLink,
@@ -412,7 +412,10 @@ func CreateElasticFare(fare *agents.Fare, priceInfo *agents.PriceInfo) *ElasticT
 			airline := GetAirlineName(flight.Airline)
 			duration := flight.ArrivalTime.Sub(flight.DepartureTime).Hours()
 
-			planes[flight.Plane] = struct{}{}
+			for _, plane := range flight.Planes {
+				planes[plane] = struct{}{}
+			}
+
 			flightDuration[airline] += duration
 
 			if (mainAirline != airline && flightDuration[airline] > flightDuration[mainAirline]) {

@@ -5,9 +5,23 @@ import (
 	"fmt"
 	"github.com/sniko/gofly/api/yahoo"
 	"sort"
+	"time"
 )
 
-var exchangeRatesCache = make(map[string]float64)
+const (
+	DesiredCurrency = "USD"
+)
+
+type Flights map[string]DepartureTimes
+
+type DepartureTimes map[time.Time]Planes
+
+type Planes map[string]int
+
+var (
+	exchangeRatesCache = make(map[string]float64)
+	flightsRefFiles = make(Flights)
+)
 
 func processor(fares <-chan agents.Fares, processedFares chan<- agents.Fares) {
 	defer close(processedFares)
@@ -15,24 +29,108 @@ func processor(fares <-chan agents.Fares, processedFares chan<- agents.Fares) {
 	for fares := range fares {
 		fmt.Printf("Processing %d fares.\n", len(fares))
 
-		convertPrices(fares, "USD")
-		sort.Sort(agents.FaresByPrice(fares))
+		updateRefFiles(fares)
+		updateFromRefFiles(fares)
 
+		convertPrices(fares, DesiredCurrency)
+
+		sort.Sort(agents.FaresByPrice(fares))
 		processedFares <- fares
 	}
 
 	fmt.Printf("All fares have been processed.\n")
 }
 
+func updateRefFiles(fares agents.Fares) {
+	for _, fare := range fares {
+		for _, itinerary := range fare.Itineraries {
+			for _, flight := range itinerary.Flights {
+				// Plane
+				if (len(flight.Planes) > 0) {
+					flightNumber := flight.CompleteFlightNumber()
+					date := flight.DepartureTime.UTC()
+
+					addPlanesToRefFiles(flightNumber, date, flight.Planes)
+				}
+			}
+		}
+	}
+}
+
+func updateFromRefFiles(fares agents.Fares) {
+	for fi := range fares {
+		fare := &fares[fi]
+		for ii := range fare.Itineraries {
+			itinerary := &fare.Itineraries[ii]
+			for fli := range itinerary.Flights {
+				flight := &itinerary.Flights[fli]
+
+				if len(flight.Planes) == 0 {
+					number := flight.CompleteFlightNumber()
+					date := flight.DepartureTime.UTC()
+
+					planes, ok := getPlanesFromRefFiles(number, date)
+					if (ok) {
+						flight.Planes = planes;
+					}
+				}
+			}
+		}
+	}
+}
+
+func addPlanesToRefFiles(flightNumber string, departureDate time.Time, planeType []string) {
+	dates, ok := flightsRefFiles[flightNumber]
+	if (!ok) {
+		dates = make(DepartureTimes)
+		flightsRefFiles[flightNumber] = dates
+	}
+
+	planes, ok := dates[departureDate]
+	if (!ok) {
+		planes = make(map[string]int)
+		dates[departureDate] = planes
+	}
+
+	for _, plane := range planeType {
+		planes[plane]++
+	}
+}
+
+func getPlanesFromRefFiles(flightNumber string, date time.Time) (planes []string, found bool) {
+	dates, ok := flightsRefFiles[flightNumber]
+	if (!ok) {
+		return nil, ok
+	}
+
+	planesMap, ok := dates[date]
+	if (!ok) {
+		// No planes history for the desired date have been found.
+		// Collecting the planes statistics from all dates.
+		planesMap = make(Planes)
+		for date := range dates {
+			for plane, count := range dates[date] {
+				planesMap[plane] += count
+			}
+		}
+	}
+
+	for plane := range planesMap {
+		planes = append(planes, plane)
+	}
+
+	return planes, true
+}
+
 func convertPrices(fares agents.Fares, currency string) {
 	currencies := getCurrencies(fares)
-	rates := getExchangeRates(currencies, "USD")
+	rates := getExchangeRates(currencies, DesiredCurrency)
 
 	for i, _ := range fares {
 		convertedPrices := []agents.PriceInfo{}
 
 		for _, priceInfo := range fares[i].Prices {
-			if (priceInfo.Currency == "USD") {
+			if (priceInfo.Currency == DesiredCurrency) {
 				convertedPrices = append(convertedPrices, priceInfo)
 				continue
 			}
@@ -40,7 +138,7 @@ func convertPrices(fares agents.Fares, currency string) {
 			rate := rates[priceInfo.Currency]
 			if (rate > 0) {
 				usdPrice := priceInfo.Price * rate
-				usdPriceInfo := agents.PriceInfo{usdPrice, "USD", priceInfo.Agent, priceInfo.Link}
+				usdPriceInfo := agents.PriceInfo{usdPrice, DesiredCurrency, priceInfo.Agent, priceInfo.Link}
 
 				convertedPrices = append(convertedPrices, priceInfo)
 				convertedPrices = append(convertedPrices, usdPriceInfo)

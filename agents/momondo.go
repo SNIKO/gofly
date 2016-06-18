@@ -126,7 +126,7 @@ func parseFares(searchResult *momondo.SearchResult, references *ReferenceFiles) 
 					destination := references.Airports[leg.DestinationIndex]
 					airline := references.Airlines[leg.AirlineIndex]
 
-					flight := Flight{leg.DepartureDate, leg.ArrivalDate, origin.IATACode, destination.IATACode, airline.IATACode, strconv.Itoa(leg.FlightNumber), "", "", ticketClass.Code, ticketClass.Name }
+					flight := Flight{leg.DepartureDate, leg.ArrivalDate, origin.IATACode, destination.IATACode, airline.IATACode, strconv.Itoa(leg.FlightNumber), "", []string {}, ticketClass.Code, ticketClass.Name }
 					flights = append(flights, flight)
 				}
 

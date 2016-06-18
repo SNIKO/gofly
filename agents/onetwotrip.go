@@ -118,7 +118,7 @@ func getFlight(result *onetwotrip.SearchResult, tripRef *onetwotrip.TripRef) (*F
 		trip.AirlineCode,
 		trip.FlightNumber,
 		trip.OperatedBy,
-		plane,
+		[]string {plane},
 		tripRef.ReservationClass,
 		tripRef.CabinClass}
 
