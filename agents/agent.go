@@ -73,13 +73,13 @@ func (fare Fare) PrettyString() string {
 
 	flightsWriter := bytes.NewBufferString("")
 	tabWriter := new(tabwriter.Writer)
-	tabWriter.Init(flightsWriter, 2, 8, 1, '\t', 0)
+	tabWriter.Init(flightsWriter, 1, 8, 1, '\t', 0)
 	write := func(columns... string) {
 		fmt.Fprintln(tabWriter, "\t", strings.Join(columns, "\t"))
 	}
 
 	for i, itinerary := range fare.Itineraries {
-		write(fmt.Sprintf("Flight %d", i), "", "", "", "", "", "", "")
+		write(fmt.Sprintf("Flight %d", i), "", "", "", "", "", "", "", "")
 
 		for j, flight := range itinerary.Flights {
 			airline := getAirlineName(flight.Airline)
@@ -93,7 +93,7 @@ func (fare Fare) PrettyString() string {
 				stopover = nextFlight.DepartureTime.Sub(thisFlight.ArrivalTime).String()
 			}
 
-			write("", flight.Airline, flight.FlightNumber, airline, planes, destination, flight.DepartureTime.String(), stopover)
+			write("", flight.Airline, flight.FlightNumber, airline, planes, destination, flight.DepartureTime.String(), flight.ArrivalTime.String(), stopover)
 		}
 	}
 
