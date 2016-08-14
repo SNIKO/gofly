@@ -5,17 +5,18 @@
         "SYD"
       ],
       "toAirport": [
-        "IEV"
+        "KBP"
       ],
-      "minDate": "17.12.2016",
-      "maxDate": "23.12.2016",
-      "minDuration": 26,
-      "maxDuration": 30
+      "minDate": "09.12.2016",
+      "maxDate": "12.12.2016",
+      "minReturnDate": "10.01.2017",
+      "maxReturnDate": "13.01.2017",
+      "minDuration": 32
     }
   ],
   "elasticSearch": {
     "host": "localhost",
     "port": 9200,
-    "index": "golfy"
+    "index": "gofly_v5"
   }
 }

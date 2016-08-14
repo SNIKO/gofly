@@ -17,12 +17,13 @@ type ElasticSearchConfig struct {
 }
 
 type Trip struct {
-	FromAirport []string
-	ToAirport   []string
-	MinDate     ConfigDate
-	MaxDate     ConfigDate
-	MinDuration int
-	MaxDuration int
+	FromAirport   []string
+	ToAirport     []string
+	MinDate       ConfigDate
+	MaxDate       ConfigDate
+	MinReturnDate ConfigDate
+	MaxReturnDate ConfigDate
+	MinDuration   int
 }
 
 type ConfigDate struct {
