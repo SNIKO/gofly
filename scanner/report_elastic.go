@@ -82,11 +82,19 @@ const (
           "type": "geo_point",
           "lat_lon": true
         },
+        "trip_via_city": {
+          "type": "string",
+          "index": "not_analyzed"
+        },
         "trip_provider": {
           "type": "string",
           "index": "not_analyzed"
         },
         "trip_main_airline": {
+          "type": "string",
+          "index": "not_analyzed"
+        },
+        "trip_airline": {
           "type": "string",
           "index": "not_analyzed"
         },
@@ -251,28 +259,30 @@ type Location struct {
 type ElasticTime time.Time
 
 type ElasticTrip struct {
-	SearchDate             ElasticTime   	`json:"search_date"`
-	SearchDateOfTheWeek    string      	`json:"search_day_of_the_week"`
-	Date                   ElasticTime   	`json:"trip_date"`
-	DateLocal              string 		`json:"trip_date_local"`
-	DayOfTheWeek           string      	`json:"trip_day_of_the_week"`
-	ReturnDate             ElasticTime   	`json:"trip_return_date"`
-	ReturnDateLocal        string 		`json:"trip_return_date_local"`
-	ReturnDayOfTheWeek     string      	`json:"trip_return_day_of_the_week"`
-	ArrivalDate            ElasticTime 	`json:"trip_arrival_date"`
-	ArrivalDateLocal       string 		`json:"trip_arrival_date_local"`
-	ReturnArrivalDate      ElasticTime 	`json:"trip_return_arrival_date"`
-	ReturnArrivalDateLocal string 		`json:"trip_return_arrival_date_local"`
-	OriginCity             string      	`json:"trip_origin_city"`
-	OriginCoordinates      *Location   	`json:"trip_origin_coordinates"`
-	DestinationCity        string      	`json:"trip_destination_city"`
-	DestinationCoordinates *Location   	`json:"trip_destination_coordinates"`
-	Provider               string      	`json:"trip_provider"`
-	MainAirline            string      	`json:"trip_main_airline"`
-	Planes                 []string    	`json:"trip_plane"`
-	Summary                string      	`json:"trip_summary"`
-	PriceInUSD             int         	`json:"trip_price_usd"`
-	ProviderLink           string      	`json:"trip_provider_link"`
+	SearchDate             ElasticTime      `json:"search_date"`
+	SearchDateOfTheWeek    string        	`json:"search_day_of_the_week"`
+	Date                   ElasticTime      `json:"trip_date"`
+	DateLocal              string           `json:"trip_date_local"`
+	DayOfTheWeek           string        	`json:"trip_day_of_the_week"`
+	ReturnDate             ElasticTime      `json:"trip_return_date"`
+	ReturnDateLocal        string           `json:"trip_return_date_local"`
+	ReturnDayOfTheWeek     string        	`json:"trip_return_day_of_the_week"`
+	ArrivalDate            ElasticTime      `json:"trip_arrival_date"`
+	ArrivalDateLocal       string           `json:"trip_arrival_date_local"`
+	ReturnArrivalDate      ElasticTime      `json:"trip_return_arrival_date"`
+	ReturnArrivalDateLocal string           `json:"trip_return_arrival_date_local"`
+	OriginCity             string        	`json:"trip_origin_city"`
+	OriginCoordinates      *Location        `json:"trip_origin_coordinates"`
+	DestinationCity        string        	`json:"trip_destination_city"`
+	DestinationCoordinates *Location        `json:"trip_destination_coordinates"`
+	ViaCities 	       []string 	`json:"trip_via_city"`
+	Provider               string        	`json:"trip_provider"`
+	MainAirline            string        	`json:"trip_main_airline"`
+	Airlines               []string 	`json:"trip_airline"`
+	Planes                 []string        	`json:"trip_plane"`
+	Summary                string        	`json:"trip_summary"`
+	PriceInUSD             int              `json:"trip_price_usd"`
+	ProviderLink           string        	`json:"trip_provider_link"`
 }
 
 type ElasticFlight struct {
@@ -507,13 +517,15 @@ func CreateElasticFare(fare *agents.Fare, priceInfo *agents.PriceInfo) *ElasticT
 		elasticFare.ReturnArrivalDateLocal = arvDate.Format(LocalDateFormat)
 	}
 
-	// Main Airline, planes
+	// Airlines, planes, via cities
 	mainAirline := ""
 	planes := map[string]struct{}{}
+	via := map[string]int{}
 	flightDuration := map[string]float64{}
 	for _, itinerary := range fare.Itineraries {
 		for _, flight := range itinerary.Flights {
 			airline := GetAirlineName(flight.Airline)
+			city := GetCityName(flight.ToAirport)
 			duration := flight.ArrivalTime.Sub(flight.DepartureTime).Hours()
 
 			for _, plane := range flight.Planes {
@@ -525,11 +537,23 @@ func CreateElasticFare(fare *agents.Fare, priceInfo *agents.PriceInfo) *ElasticT
 			if (mainAirline != airline && flightDuration[airline] > flightDuration[mainAirline]) {
 				mainAirline = airline
 			}
+
+			if (city != elasticFare.OriginCity && city != elasticFare.DestinationCity) {
+				via[city] += 1
+			}
 		}
 	}
 
 	for key := range(planes) {
 		elasticFare.Planes = append(elasticFare.Planes, key)
+	}
+
+	for airline := range(flightDuration) {
+		elasticFare.Airlines = append(elasticFare.Airlines, airline)
+	}
+
+	for city := range(via) {
+		elasticFare.ViaCities = append(elasticFare.ViaCities, city)
 	}
 
 	elasticFare.MainAirline = mainAirline
@@ -562,6 +586,15 @@ func GetAirlineName(iataCode string) string  {
 		return iataCode
 	} else {
 		return airline.Name
+	}
+}
+
+func GetCityName(airportCode string) string {
+	airport, err := airports.GetByIATACode(airportCode)
+	if (err != nil) {
+		return airportCode
+	} else {
+		return airport.City
 	}
 }
 
