@@ -38,7 +38,7 @@ func processor(fares <-chan agents.Fares, processedFares chan<- agents.Fares) {
 		processedFares <- fares
 	}
 
-	fmt.Printf("All fares have been processed.\n")
+	fmt.Println("All fares have been processed.")
 }
 
 func updateRefFiles(fares agents.Fares) {
@@ -124,13 +124,13 @@ func getPlanesFromRefFiles(flightNumber string, date time.Time) (planes []string
 
 func convertPrices(fares agents.Fares, currency string) {
 	currencies := getCurrencies(fares)
-	rates := getExchangeRates(currencies, DesiredCurrency)
+	rates := getExchangeRates(currencies, currency)
 
 	for i, _ := range fares {
 		convertedPrices := []agents.PriceInfo{}
 
 		for _, priceInfo := range fares[i].Prices {
-			if (priceInfo.Currency == DesiredCurrency) {
+			if (priceInfo.Currency == currency) {
 				convertedPrices = append(convertedPrices, priceInfo)
 				continue
 			}
@@ -138,7 +138,7 @@ func convertPrices(fares agents.Fares, currency string) {
 			rate := rates[priceInfo.Currency]
 			if (rate > 0) {
 				usdPrice := priceInfo.Price * rate
-				usdPriceInfo := agents.PriceInfo{usdPrice, DesiredCurrency, priceInfo.Agent, priceInfo.Link}
+				usdPriceInfo := agents.PriceInfo{usdPrice, currency, priceInfo.Agent, priceInfo.Link}
 
 				convertedPrices = append(convertedPrices, priceInfo)
 				convertedPrices = append(convertedPrices, usdPriceInfo)
