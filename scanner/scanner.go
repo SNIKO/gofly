@@ -47,20 +47,25 @@ func getTripCombinations(tripsConfigs []Trip) (trips []TripInfo) {
 			for _, destination := range tripConfig.ToAirport {
 				fromDate := tripConfig.MinDate.time
 				toDate := tripConfig.MaxDate.time.AddDate(0, 0, 1)
-				fromReturnDate := tripConfig.MinReturnDate.time
-				toReturnDate := tripConfig.MaxReturnDate.time.AddDate(0, 0, 1)
 
 				for date := fromDate; date.Before(toDate); date = date.AddDate(0, 0, 1) {
-					returnDate := date.AddDate(0, 0, tripConfig.MinDuration - 1)
-					if returnDate.Before(fromReturnDate) {
-						returnDate = fromReturnDate
-					}
+					flight := agents.FlightDirection{origin, destination, date}
 
-					for ; returnDate.Before(toReturnDate); returnDate = returnDate.AddDate(0, 0, 1) {
-						flight := agents.FlightDirection{origin, destination, date}
-						returnFlight := agents.FlightDirection{destination, origin, returnDate}
+					if tripConfig.MinReturnDate.time.IsZero() == false {
+						fromReturnDate := tripConfig.MinReturnDate.time
+						toReturnDate := tripConfig.MaxReturnDate.time.AddDate(0, 0, 1)
 
-						trips = append(trips, TripInfo{[]agents.FlightDirection{flight, returnFlight}})
+						returnDate := date.AddDate(0, 0, tripConfig.MinDuration - 1)
+						if returnDate.Before(fromReturnDate) {
+							returnDate = fromReturnDate
+						}
+
+						for ; returnDate.Before(toReturnDate); returnDate = returnDate.AddDate(0, 0, 1) {
+							returnFlight := agents.FlightDirection{destination, origin, returnDate}
+							trips = append(trips, TripInfo{Route: []agents.FlightDirection{flight, returnFlight}})
+						}
+					} else {
+						trips = append(trips, TripInfo{Route: []agents.FlightDirection{flight}})
 					}
 				}
 			}
