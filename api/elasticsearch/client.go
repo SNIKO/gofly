@@ -28,11 +28,19 @@ type Response struct {
 }
 
 func NewClient(host string, port int) *Client {
-	return  &Client{host, port, &http.Client{}}
+	return &Client{
+		Host: host,
+		Port: port,
+		client: &http.Client{},
+	}
 }
 
 func NewDefaultClient() *Client {
-	return &Client{DefaultHost, DefaultPort, &http.Client{}}
+	return &Client{
+		Host: DefaultHost,
+		Port: DefaultPort,
+		client: &http.Client{},
+	}
 }
 
 func (c *Client) put(path string, body interface{}) (*Response, error) {
@@ -45,6 +53,10 @@ func (c *Client) post(path string, body interface{}) (*Response, error) {
 
 func (c *Client) head(path string, ignoreErrors ...int) (*Response, error) {
 	return c.sendRequest("HEAD", path, nil, ignoreErrors...)
+}
+
+func (c *Client) delete(path string) (*Response, error) {
+	return c.sendRequest("DELETE", path, struct {}{})
 }
 
 func (c *Client) sendRequest(method string, path string, body interface{}, ignoreErrors ...int) (*Response, error) {
@@ -60,29 +72,38 @@ func (c *Client) sendRequest(method string, path string, body interface{}, ignor
 		return nil, err
 	}
 
-	response, err := c.client.Do(request)
+	resp, err := c.client.Do(request)
 	if (err != nil) {
 		return nil, err
 	}
 
-	if (response.Body != nil) {
-		defer response.Body.Close()
+	if (resp.Body != nil) {
+		defer resp.Body.Close()
 	}
 
-	err = CheckErrorCode(response, ignoreErrors...)
+	err = CheckErrorCode(resp, ignoreErrors...)
 	if (err != nil) {
 		return nil, err
 	}
 
-	bodyAsString, err := ioutil.ReadAll(response.Body)
+	bodyAsString, err := ioutil.ReadAll(resp.Body)
 	if (err != nil) {
 		return nil, err
 	}
 
-	return &Response{response.StatusCode, string(bodyAsString)}, nil
+	response := Response{
+		StatusCode: resp.StatusCode,
+		Body: string(bodyAsString),
+	}
+
+	return &response, nil
 }
 
 func getBodyReader(body interface{}) (io.Reader, error) {
+	if (body == nil) {
+		return nil, nil
+	}
+
 	switch b := body.(type) {
 	case string:
 		return strings.NewReader(b), nil

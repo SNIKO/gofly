@@ -3,10 +3,13 @@ package elasticsearch
 import (
 	"encoding/json"
 	"strings"
+	"fmt"
 )
 
-func (c *Client) CreateIndex(index string, indexConfig string) (*Acknowledge, error) {
-	response, err := c.put(index, indexConfig)
+func (c *Client) DeleteTemplate(templateName string) (*Acknowledge, error) {
+	path := fmt.Sprintf("_template/%s", templateName)
+
+	response, err := c.delete(path)
 	if (err != nil) {
 		return nil, err
 	}
