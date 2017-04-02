@@ -58,6 +58,8 @@ type Agent interface {
 type FaresByPrice []Fare
 
 func (fare Fare) PrettyString() string {
+	LocalDateFormat := "Mon, 02 Jan 2006 15:04"
+
 	var result bytes.Buffer
 	departureAirports := []string{}
 	departureDates := []string{}
@@ -75,7 +77,7 @@ func (fare Fare) PrettyString() string {
 	tabWriter := new(tabwriter.Writer)
 	tabWriter.Init(flightsWriter, 1, 8, 1, '\t', 0)
 	write := func(columns... string) {
-		fmt.Fprintln(tabWriter, "\t", strings.Join(columns, "\t"))
+		fmt.Fprintln(tabWriter, strings.Join(columns, "\t"))
 	}
 
 	for i, itinerary := range fare.Itineraries {
@@ -93,7 +95,7 @@ func (fare Fare) PrettyString() string {
 				stopover = nextFlight.DepartureTime.Sub(thisFlight.ArrivalTime).String()
 			}
 
-			write("", flight.Airline, flight.FlightNumber, airline, planes, destination, flight.DepartureTime.String(), flight.ArrivalTime.String(), stopover)
+			write("", flight.Airline, flight.FlightNumber, airline, planes, destination, flight.DepartureTime.Format(LocalDateFormat), flight.ArrivalTime.Format(LocalDateFormat), stopover)
 		}
 	}
 
