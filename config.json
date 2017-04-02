@@ -7,16 +7,27 @@
       "toAirport": [
         "KBP"
       ],
-      "minDate": "09.12.2016",
-      "maxDate": "12.12.2016",
-      "minReturnDate": "10.01.2017",
-      "maxReturnDate": "13.01.2017",
-      "minDuration": 32
+      "minDate": "19.12.2017",
+      "maxDate": "23.12.2017",
+      "minReturnDate": "09.01.2018",
+      "maxReturnDate": "14.01.2018"
+    },
+    {
+      "fromAirport": [
+        "SYD"
+      ],
+      "toAirport": [
+        "DPS", "MNL", "HKT"
+      ],
+      "minDate": "29.03.2018",
+      "maxDate": "30.03.2018",
+      "minReturnDate": "07.04.2018",
+      "maxReturnDate": "08.04.2018",
+      "minDuration": 7
     }
   ],
   "elasticSearch": {
     "host": "localhost",
-    "port": 9200,
-    "index": "gofly_v5"
+    "port": 9200
   }
 }

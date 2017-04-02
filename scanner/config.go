@@ -13,7 +13,6 @@ type Config struct {
 type ElasticSearchConfig struct {
 	Host  string
 	Port  int
-	Index string
 }
 
 type Trip struct {
