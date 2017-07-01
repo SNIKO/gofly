@@ -8,17 +8,20 @@ import (
 	"github.com/sniko/gofly/references/airports"
 	"errors"
 	"time"
+	"compress/gzip"
 )
 
 func NewRequest(adultCount int, culture string, ticketClass string, segments []Direction) *SearchRequest {
-	return &SearchRequest {
-		adultCount,
-		"mobileapp",
-		make([]int, 0),
-		culture,
-		true,
-		ticketClass,
-		segments,
+	return &SearchRequest{
+		AdultCount: adultCount,
+		ChildAges: make([]int, 0),
+		Culture: culture,
+		TicketClass: ticketClass,
+		Segments: segments,
+		Mix: "Segments",
+		Market: "",
+		DirectOnly: false,
+		IncludeNearby: false,
 	}
 }
 
@@ -28,15 +31,31 @@ func StartSearch(request SearchRequest) (*SearchSessionInfo, error) {
 		return nil, err;
 	}
 
-	response, err := http.Post("http://api.momondo.com/api/3.0/FlightSearch", "application/json", bytes.NewReader(body))
+	req, err := http.NewRequest("POST", "http://api.momondo.com/api/3.0/FlightSearch", bytes.NewReader(body))
+	if (err != nil) {
+		return nil, err
+	}
+
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36")
+	req.Header.Set("Accept-Encoding", "gzip, deflate")
+	req.Header.Set("Content-Type", "application/json")
+
+	response, err := http.DefaultClient.Do(req)
 	if (err != nil) {
 		return nil, err;
 	}
 
 	defer response.Body.Close()
 
+	reader, err := gzip.NewReader(response.Body)
+	if (err != nil){
+		return  nil, err
+	}
+
+	defer reader.Close()
+
 	var res SearchSessionInfo
-	decoder := json.NewDecoder(response.Body)
+	decoder := json.NewDecoder(reader)
 	err = decoder.Decode(&res)
 	if (err != nil) {
 		return nil, err
@@ -47,15 +66,31 @@ func StartSearch(request SearchRequest) (*SearchSessionInfo, error) {
 
 func PollSearchResults(searchId string, engineId int) (*SearchResult, error) {
 	url := fmt.Sprintf("http://api.momondo.com/api/3.0/FlightSearch/%s/%d/true", searchId, engineId)
-	response, err := http.Get(url)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if (err != nil) {
+		return nil, err
+	}
+
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36")
+	req.Header.Set("Accept-Encoding", "gzip, deflate")
+
+	response, err := http.DefaultClient.Do(req)
 	if (err != nil) {
 		return nil, err
 	}
 
 	defer response.Body.Close()
 
+	reader, err := gzip.NewReader(response.Body)
+	if (err != nil){
+		return  nil, err
+	}
+
+	defer reader.Close()
+
 	var res SearchResult
-	decoder := json.NewDecoder(response.Body)
+	decoder := json.NewDecoder(reader)
 	err = decoder.Decode(&res)
 	if (err != nil) {
 		return nil, err

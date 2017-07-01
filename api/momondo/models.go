@@ -6,13 +6,15 @@ type FlightDate time.Time
 type LegDate time.Time
 
 type SearchRequest struct {
-	AdultCount  int
-	Application string
-	ChildAges   []int
-	Culture     string
-	Mobile      bool
-	TicketClass string
-	Segments    []Direction
+	AdultCount    int
+	ChildAges     []int
+	Culture       string
+	TicketClass   string
+	Segments      []Direction
+	Mix           string
+	Market        string
+	DirectOnly    bool
+	IncludeNearby bool
 }
 
 type Direction struct {
